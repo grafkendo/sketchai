@@ -26,9 +26,12 @@ enterprise tiers.
 
 ## Status
 
-Spec + research + whitepaper complete (Oct 2026). **No code yet** —
-implementation starts on the author's go-ahead. Open questions (name, build
-surface, photoreal bridge, first demo vertical) are listed in the spec §11.
+Spec + research + whitepaper complete (Oct 2026). **Phase 0+1 engine built
+(Oct 12, 2026):** `engine/` holds the deterministic render core — 14 typed
+components, constraint/flow layout, brand-token enforcement at render time,
+content-hashed compose/edit loop, FastAPI service (`POST /v1/renders`,
+`PATCH /v1/renders/{id}`), CLI, and a 6-slide demo proving surgical edits
+(`engine/demo_out/`). Phase 2 (MCP server + registry publishing) is next.
 
 ## Also parked (not dropped)
 
