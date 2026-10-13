@@ -20,8 +20,10 @@ render in agreement.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
+import sys
 from functools import lru_cache
 from xml.sax.saxutils import escape as xml_escape
 
@@ -42,10 +44,43 @@ _WEIGHT_NAMES = {  # style substring -> numeric weight, checked in order
 }
 
 
+def _ttf_name_table(directory: str) -> list[tuple[str, str, str]]:
+    """Read (file, family, style) from every TTF/OTF in a directory via PIL.
+
+    Used for the bundled engine/fonts/ and for C:\\Windows\\Fonts — no
+    fontconfig needed, so this works on machines where fc-list is absent.
+    """
+    out: list[tuple[str, str, str]] = []
+    if not os.path.isdir(directory):
+        return out
+    for fn in sorted(os.listdir(directory)):
+        if not fn.lower().endswith((".ttf", ".otf", ".ttc")):
+            continue
+        path = os.path.join(directory, fn)
+        try:
+            family, style = ImageFont.truetype(path, 16).getname()
+            out.append((path, family, style))
+        except OSError:
+            continue
+    return out
+
+
 @lru_cache(maxsize=1)
 def _fontconfig_index() -> list[tuple[str, str, str]]:
-    """Parse `fc-list : file family style` once. Returns [(file, family, style)]."""
-    out: list[tuple[str, str, str]] = []
+    """Font index: [(file, family, style)].
+
+    Bundled fonts (engine/fonts/) come FIRST, then Windows system fonts, then
+    fontconfig results. WHY bundled-first: cross-machine determinism — the same
+    TTF file measures and renders identically everywhere, while system
+    fontconfig varies by machine and doesn't exist on Windows at all.
+    resolve_font() picks by family match + closest weight, so bundled fonts
+    win ties.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    out: list[tuple[str, str, str]] = _ttf_name_table(os.path.join(here, "fonts"))
+    if sys.platform == "win32":
+        windir = os.environ.get("WINDIR", r"C:\Windows")
+        out.extend(_ttf_name_table(os.path.join(windir, "Fonts")))
     try:
         raw = subprocess.run(
             ["fc-list", ":", "file", "family", "style"],
@@ -92,7 +127,7 @@ def resolve_font(family: str, weight: int = 400) -> tuple[str, int, bool]:
         best = min(fb, key=lambda c: (abs(c[1] - weight), -c[1]))
         return best[0], best[1], True
     raise LayoutError(None, f"no usable font found for '{family}' and no DejaVu fallback",
-                      "Install the font or use a family present in `fc-list`.")
+                      "Add the TTF to engine/fonts/ or install the family on this system.")
 
 
 @lru_cache(maxsize=512)
