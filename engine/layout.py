@@ -43,6 +43,13 @@ _WEIGHT_NAMES = {  # style substring -> numeric weight, checked in order
     "regular": 400, "light": 300, "thin": 100,
 }
 
+# WHY Hanken (not DejaVu): raw MCP scene JSON often omits `font` on text/badge
+# nodes — Python builders default to $fonts.body, but catalog defaults are not
+# injected into the wire payload. DejaVu Sans is common on Linux and absent on
+# Windows; Hanken Grotesk is bundled in engine/fonts/ so omit-font scenes still
+# measure and render on every platform.
+DEFAULT_TEXT_FONT = "Hanken Grotesk"
+
 
 def _ttf_name_table(directory: str) -> list[tuple[str, str, str]]:
     """Read (file, family, style) from every TTF/OTF in a directory via PIL.
@@ -104,8 +111,9 @@ def resolve_font(family: str, weight: int = 400) -> tuple[str, int, bool]:
     """Return (font_file, matched_weight, was_fallback).
 
     Matches family case-insensitively, then picks the installed style whose
-    weight is closest to the request. Falls back to DejaVu Sans, and reports
-    it — the engine never silently pretends a font is used when it isn't.
+    weight is closest to the request. Falls back to DejaVu Sans, then bundled
+    Hanken Grotesk, and reports was_fallback=True — the engine never silently
+    pretends a requested font was used when it wasn't.
     """
     index = _fontconfig_index()
     fam = family.strip().lower()
@@ -125,12 +133,16 @@ def resolve_font(family: str, weight: int = 400) -> tuple[str, int, bool]:
         best = min(candidates, key=lambda c: (abs(c[1] - weight), -c[1]))
         return best[0], best[1], best[1] != weight
 
-    # Ultimate fallback: DejaVu Sans ships with virtually every Linux.
-    fb = [(f, style_weight(st)) for (f, fa, st) in index if "dejavu sans" in fa.lower()]
-    if fb:
-        best = min(fb, key=lambda c: (abs(c[1] - weight), -c[1]))
-        return best[0], best[1], True
-    raise LayoutError(None, f"no usable font found for '{family}' and no DejaVu fallback",
+    # Fallback chain when the requested family is missing:
+    # 1) DejaVu Sans — common on Linux, rarely present on Windows
+    # 2) Bundled brand body (Hanken) — always in engine/fonts/
+    # Reported as was_fallback=True so callers know it wasn't the request.
+    for needle in ("dejavu sans", "hanken grotesk"):
+        fb = [(f, style_weight(st)) for (f, fa, st) in index if needle in fa.lower()]
+        if fb:
+            best = min(fb, key=lambda c: (abs(c[1] - weight), -c[1]))
+            return best[0], best[1], True
+    raise LayoutError(None, f"no usable font found for '{family}' and no bundled fallback",
                       "Add the TTF to engine/fonts/ or install the family on this system.")
 
 
@@ -387,7 +399,7 @@ class Resolver:
 
     def _lay_text(self, node, x, y, avail_w, avail_h):
         width, lines, height = measure_text(
-            node.get("text", ""), node.get("font", "DejaVu Sans"),
+            node.get("text", ""), node.get("font", DEFAULT_TEXT_FONT),
             node.get("size", 48), node.get("weight", 400),
             node.get("line_height", 1.15), node.get("max_width"),
             node.get("letter_spacing", 0))
@@ -415,7 +427,7 @@ class Resolver:
         return s, s
 
     def _lay_badge(self, node, x, y, avail_w, avail_h):
-        tw, _, th = measure_text(node.get("text", ""), node.get("font", "DejaVu Sans"),
+        tw, _, th = measure_text(node.get("text", ""), node.get("font", DEFAULT_TEXT_FONT),
                                  node.get("size", 30), node.get("weight", 700))
         w = tw + 2 * node.get("padding_x", 28)
         h = th + 2 * node.get("padding_y", 14)
@@ -497,7 +509,7 @@ class SVGWriter:
         # Baseline from real font metrics: first-line ascent below the top
         # of the layout box. WHY metrics, not a magic 0.8*size: different
         # fonts have different ascents; metrics keep every font honest.
-        font_file, _, _ = resolve_font(node.get("font", "DejaVu Sans"),
+        font_file, _, _ = resolve_font(node.get("font", DEFAULT_TEXT_FONT),
                                        node.get("weight", 400))
         ascent = _pil_font(font_file, max(1, int(round(size)))).getmetrics()[0]
         lh = (node.get("size", 48)) * node.get("line_height", 1.15)
@@ -509,7 +521,7 @@ class SVGWriter:
         )
         return (
             f"<text {_attrs(id=node['node_id'], x=round(tx, 2), y=round(y0 + ascent, 2))} "
-            f"{_attrs(**{'font-family': node.get('font', 'DejaVu Sans')})} "
+            f"{_attrs(**{'font-family': node.get('font', DEFAULT_TEXT_FONT)})} "
             f"{_attrs(**{'font-size': size, 'font-weight': node.get('weight', 400), 'text-anchor': anchor, 'fill': node.get('fill', '#000000'), 'letter-spacing': node.get('letter_spacing', 0) or None})}>"
             f"{tspans}</text>"
         )
@@ -575,7 +587,7 @@ class SVGWriter:
             parts.append(
                 f"<rect {_attrs(x=round(bx, 2), y=round(by, 2), width=round(bw, 2), height=round(bh, 2), rx=6, fill=node['bar_fill'])} />")
             parts.append(
-                f"<text {_attrs(x=round(bx + bw / 2, 2), y=round(y0 + plot_h + 34, 2), **{'font-family': node.get('font', 'DejaVu Sans')})} "
+                f"<text {_attrs(x=round(bx + bw / 2, 2), y=round(y0 + plot_h + 34, 2), **{'font-family': node.get('font', DEFAULT_TEXT_FONT)})} "
                 f"{_attrs(**{'font-size': node.get('label_size', 28), 'text-anchor': 'middle', 'fill': node.get('label_fill', '#fff')})}>"
                 f"{_esc(str(d['label']))}</text>")
         return f"<g {_attrs(id=node['node_id'])}>{''.join(parts)}</g>"
@@ -603,14 +615,14 @@ class SVGWriter:
 
     def _emit_badge(self, node: dict) -> str:
         x0, y0, w, h = node["_x"], node["_y"], node["_w"], node["_h"]
-        font_file, _, _ = resolve_font(node.get("font", "DejaVu Sans"), node.get("weight", 700))
+        font_file, _, _ = resolve_font(node.get("font", DEFAULT_TEXT_FONT), node.get("weight", 700))
         size_i = max(1, int(round(node.get("size", 30))))
         ascent = _pil_font(font_file, size_i).getmetrics()[0]
         return (
             f"<g {_attrs(id=node['node_id'])}>"
             f"<rect {_attrs(x=x0, y=y0, width=w, height=h, rx=round(h / 2, 2), fill=node['fill'])} />"
             f"<text {_attrs(x=round(x0 + w / 2, 2), y=round(y0 + (h + ascent) / 2 - 2, 2))} "
-            f"{_attrs(**{'font-family': node.get('font', 'DejaVu Sans')})} "
+            f"{_attrs(**{'font-family': node.get('font', DEFAULT_TEXT_FONT)})} "
             f"{_attrs(**{'font-size': node.get('size', 30), 'font-weight': node.get('weight', 700), 'text-anchor': 'middle', 'fill': node.get('text_fill', '#000')})}>"
             f"{_esc(node.get('text', ''))}</text></g>"
         )

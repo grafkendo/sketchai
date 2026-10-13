@@ -49,11 +49,13 @@ original hash; off-palette color correctly rejected naming node + rule.
 
 ## Environment notes
 
-- **Fonts: NO fallback needed.** Bricolage Grotesque (ExtraBold file) and
-  Hanken Grotesk (Medium file) are installed at `~/.fonts/` and resolve via
-  fontconfig — the demo PNGs use the real brand fonts. Weight requests map to
-  the closest installed style (800→ExtraBold, 500→Medium); anything else falls
-  back to the single installed cut, then DejaVu Sans (reported, never silent).
+- **Fonts are pinned in-repo** at `engine/fonts/` (Bricolage Grotesque
+  ExtraBold, Hanken Grotesk Medium). Index order: bundled → Windows Fonts →
+  `fc-list` (when present). Weight requests map to the closest installed cut;
+  missing families fall back to DejaVu Sans, then bundled Hanken (reported via
+  `was_fallback`, never silent). On Windows, `fc-list` is decoded as UTF-8
+  with `errors=replace` and empty stdout guarded — a stray MSYS `fc-list` used
+  to crash compose with `NoneType.splitlines`.
 - cairosvg 2.9.1 + Pillow 12.3.0 (venv), Python 3.12.3. PNG output verified
   byte-deterministic; SVG attribute order is fixed at every call site.
 - `content_hash` is over the **resolved** scene graph (tokens substituted),
@@ -67,10 +69,10 @@ original hash; off-palette color correctly rejected naming node + rule.
 2. **URL image slots are passed through, never fetched** — render can't change
    under you, but a dead URL means a broken `<image>` (validation only checks
    local files exist).
-3. **Text measurement == layout truth only for installed fonts.** On a machine
-   without Bricolage/Hanken, output silently uses fallback metrics — same
-   machine = deterministic, cross-machine = may differ. Phase 2 should pin
-   font files in-repo.
+3. **Text measurement == layout truth only for the resolved TTF.** Bundled
+   brand fonts make cross-machine renders match when agents use `$fonts.*`
+   (or omit font and hit the Hanken default). A machine-specific system font
+   can still diverge if a scene names a family that isn't bundled.
 4. **Charts are simple** (bar + donut); no axes, legends, or line charts yet.
 5. **No `sketch.sequence`/storyboard endpoint yet** — demo does 6 separate
    renders; sequencing is Phase 3 per roadmap.
