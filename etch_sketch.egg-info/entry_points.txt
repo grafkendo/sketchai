@@ -1,2 +1,0 @@
-[console_scripts]
-etch-mcp = engine.mcp_server:main
