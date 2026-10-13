@@ -52,16 +52,22 @@ claude mcp add etch -- /home/YOU/workspace/agent-tools-lab/engine/.venv/bin/pyth
 
 **Generic MCP client:** stdio transport, command + args as above.
 
-## Tools (8)
+## Tools (14)
 
 | Tool | One-liner |
 |---|---|
-| `sketch_compose` | Scene graph → render (`render_id`, `content_hash`, `svg`, `png_base64`, bboxes) |
-| `sketch_edit` | Patch ops on `node_id`s → new render + `diff.changed` |
+| `sketch_compose` | Scene graph → render (`render_id`, `content_hash`, `svg`, `png_base64`, bboxes, `provenance`) |
+| `sketch_edit` | Patch ops on `node_id`s → new render + `diff.changed` (+ lineage in `provenance.parents`) |
 | `sketch_sequence` | Scenes[] → storyboard + contact-sheet PNG |
+| `sketch_batch` | Template scene with `{{placeholders}}` + row dicts → one render per row |
+| `sketch_from_pack` | Render a named fragment from a component pack with `params` |
+| `packs_list` | Component packs on disk → fragments + their params |
+| `sketch_diff` | Two render_ids → diff PNG (red on dimmed base), `% changed`, region boxes |
+| `sketch_animate` | render_ids[] or storyboard_id → animated GIF under `engine/assets/animated/` |
+| `sketch_provenance` | Signed-render manifest for a render_id (HMAC-SHA256 when `ETCH_SIGNING_KEY` set) |
 | `components_list` | Token-cheap catalog (`type_filter`: `all`\|`container`\|`leaf`) |
 | `brand_apply` | Resolve `$tokens` on a scene without rendering |
-| `brand_validate` | Rule check without rendering → `passed` + `violations` |
+| `brand_validate` | Rule check without rendering → `passed` + `violations` (incl. `contrast`, `max_colors`) |
 | `assets_upload` | Store PNG/JPEG → `asset_id` + `path` (use `path` as image `src`) |
 | `fonts_list` | Fonts actually installed here (family → styles → files) |
 
@@ -71,7 +77,30 @@ on failure — never a silent fallback. Check for the `"error"` key.
 **Conventions:** `brand_id` defaults to `"protograph"`. Every node needs a
 unique `node_id`. Prefer `stack`/`grid` over absolute coordinates (you can't
 see the canvas; the layout engine can). `strict=true` blocks renders that
-violate brand rules; `strict=false` warns instead.
+violate brand rules with severity `error`; `strict=false` (or `warn`-level
+rules) warns instead.
+
+**Provenance:** every compose/edit response carries a `provenance` manifest
+(`render_id`, `content_hash`, `brand_id`, `parents` edit lineage,
+`engine_version`, `signed`). Set `ETCH_SIGNING_KEY` on the server for
+HMAC-SHA256 signatures; verify with `sketch_provenance`.
+
+**Batch & packs:** `sketch_batch` substitutes `{{key}}` placeholders in text
+and fill values (missing key → error naming it). Packs live in
+`engine/packs/<name>.json`; `carousel-basics` ships with `hook`,
+`content`, `cta` fragments.
+
+**Image generation:** image nodes accept `gen_prompt` instead of `src` — the
+diffusion bridge (`imagegen.py`) resolves it. Default provider `none`
+(errors naming the missing provider); `ETCH_IMAGE_PROVIDER=command` runs
+`ETCH_IMAGE_COMMAND` with `{prompt}`/`{out}` placeholders. No network calls.
+
+**Hosted mode:** `ETCH_TRANSPORT=http` serves Streamable HTTP on
+`ETCH_PORT` (default 8000) at `/mcp`. With `ETCH_API_KEY` set, requests need
+a matching `X-API-Key` header (401 otherwise). Every successful tool call
+appends a JSON line to `ETCH_METER_LOG` (default `engine/meter.jsonl`):
+`{ts, tool, credits, render_id, content_hash}` — compose/edit = 1 credit,
+sequence = per scene, batch = per row, others = 0.
 
 ## Worked example: the edit loop
 
