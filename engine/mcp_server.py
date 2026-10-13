@@ -306,5 +306,10 @@ def fonts_list() -> dict:
                       for fam, styles in sorted(fams.items())]}
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Console-script entry point (``etch-mcp``) for the pip-installed package."""
     mcp.run()  # stdio transport
+
+
+if __name__ == "__main__":
+    main()
