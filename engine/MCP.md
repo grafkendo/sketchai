@@ -38,25 +38,13 @@ The server runs over **stdio** (newline-delimited JSON-RPC). Launch command:
 claude mcp add etch -- /home/YOU/workspace/agent-tools-lab/engine/.venv/bin/python /home/YOU/workspace/agent-tools-lab/engine/mcp_server.py
 ```
 
-**Cursor** (`~/.cursor/mcp.json` on macOS/Linux, `%USERPROFILE%\.cursor\mcp.json` on Windows):
+**Cursor** (`~/.cursor/mcp.json`):
 ```json
 {
   "mcpServers": {
     "etch": {
       "command": "/home/YOU/workspace/agent-tools-lab/engine/.venv/bin/python",
       "args": ["/home/YOU/workspace/agent-tools-lab/engine/mcp_server.py"]
-    }
-  }
-}
-```
-
-Windows example (paths must point at this repo's venv + `mcp_server.py`):
-```json
-{
-  "mcpServers": {
-    "etch": {
-      "command": "C:\\\\Users\\\\YOU\\\\Documents\\\\projects\\\\sketchai\\\\engine\\\\.venv\\\\Scripts\\\\python.exe",
-      "args": ["C:\\\\Users\\\\YOU\\\\Documents\\\\projects\\\\sketchai\\\\engine\\\\mcp_server.py"]
     }
   }
 }
@@ -135,13 +123,8 @@ violate brand rules; `strict=false` warns instead.
 
 ## Notes
 
-- **Not image generation.** Etch is a deterministic vector layout engine
-  (scene graph → SVG → PNG). No diffusion / latent models — same scene + brand
-  yields the same `content_hash` and pixels.
 - Renders are **content-addressed**: re-composing an identical scene returns
   the existing `render_id` (cache hit, not a new render).
 - Store is **in-memory** (process lifetime). Restart the server = fresh store.
 - `png_base64` decodes to a standard PNG. `svg` is the editable source of truth.
 - Determinism: no randomness, no timestamps in any tool output.
-- Prefer brand font tokens (`$fonts.display` / `$fonts.body`) on text and
-  badges. If `font` is omitted, layout uses bundled Hanken Grotesk (not DejaVu).
