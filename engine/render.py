@@ -37,24 +37,43 @@ def _ensure_cairo_dll() -> None:
     WHY this exists: cairosvg needs Cairo's native DLL, which pip cannot ship
     on Windows. The GTK3 runtime installer provides it, but (a) it doesn't
     always land on PATH, and (b) Python 3.8+ ignores PATH for DLL loading
-    anyway — os.add_dll_directory() is the supported mechanism. Doing it here,
-    in code, means the fix travels with the repo: it works whether the server
-    is launched from a terminal, Claude Code, or Cursor, with zero user
-    configuration. Respects CAIROCFFI_DLL_DIRECTORIES if the user set it.
+    anyway. Doing it here, in code, means the fix travels with the repo: it
+    works whether the server is launched from a terminal, Claude Code, or
+    Cursor, with zero user configuration. Respects CAIROCFFI_DLL_DIRECTORIES
+    if the user set it.
+
+    WHY pre-load by full path instead of just add_dll_directory(): cffi's
+    internal loader does not reliably consult directories registered with
+    os.add_dll_directory() (observed 2026-10-12: directory registered, bare
+    name still not found, yet ctypes.CDLL(full_path) loads fine). Pre-loading
+    by absolute path puts the module in Windows' per-process module cache, so
+    every later bare-name LoadLibrary("libcairo-2.dll") — including cffi's —
+    resolves from the cache without any search.
     """
-    if sys.platform != "win32" or not hasattr(os, "add_dll_directory"):
+    if sys.platform != "win32":
         return
+    import ctypes
+
     candidates: list[str] = []
     env = os.environ.get("CAIROCFFI_DLL_DIRECTORIES")
     if env:
         candidates.extend(env.split(os.pathsep))
     candidates.append(r"C:\Program Files\GTK3-Runtime Win64\bin")
     for directory in candidates:
-        if directory and os.path.isdir(directory):
+        if not (directory and os.path.isdir(directory)):
+            continue
+        if hasattr(os, "add_dll_directory"):
             try:
                 os.add_dll_directory(directory)
             except OSError:
                 pass
+        full = os.path.join(directory, "libcairo-2.dll")
+        if os.path.isfile(full):
+            try:
+                ctypes.CDLL(full)
+                return  # pre-loaded; bare-name loads now hit the module cache
+            except OSError:
+                continue
 
 
 _ensure_cairo_dll()
