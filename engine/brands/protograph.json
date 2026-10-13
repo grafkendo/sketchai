@@ -1,1 +1,55 @@
-{"colors":{"azure":"#00A3FF","bg":"#171310","lime":"#B6FF3B","magenta":"#FF2E9D","paper":"#F7F2E8"},"fonts":{"body":"Hanken Grotesk","display":"Bricolage Grotesque"},"id":"protograph","name":"Protograph","neutrals":["#FFFFFF"],"radius":{"md":16,"pill":999,"sm":8},"rules":[{"desc":"fills/strokes must be brand colors or neutrals","type":"palette"},{"desc":"type must be set in a brand font","type":"fonts"},{"desc":"never use pure black; use $colors.bg","type":"no_pure_black"}],"spacing":{"lg":64,"md":32,"sm":16,"xl":96}}
+{
+  "colors": {
+    "azure": "#00A3FF",
+    "bg": "#171310",
+    "lime": "#B6FF3B",
+    "magenta": "#FF2E9D",
+    "paper": "#F7F2E8"
+  },
+  "fonts": {
+    "body": "Hanken Grotesk",
+    "display": "Bricolage Grotesque"
+  },
+  "id": "protograph",
+  "name": "Protograph",
+  "neutrals": [
+    "#FFFFFF"
+  ],
+  "radius": {
+    "md": 16,
+    "pill": 999,
+    "sm": 8
+  },
+  "rules": [
+    {
+      "desc": "fills/strokes must be brand colors or neutrals",
+      "type": "palette"
+    },
+    {
+      "desc": "type must be set in a brand font",
+      "type": "fonts"
+    },
+    {
+      "desc": "never use pure black; use $colors.bg",
+      "type": "no_pure_black"
+    },
+    {
+      "type": "contrast",
+      "min_ratio": 4.5,
+      "severity": "warn",
+      "desc": "text should stay legible against its background (WCAG AA 4.5:1)"
+    },
+    {
+      "type": "max_colors",
+      "max": 6,
+      "severity": "warn",
+      "desc": "keep scenes within the 5 palette colors + neutrals"
+    }
+  ],
+  "spacing": {
+    "lg": 64,
+    "md": 32,
+    "sm": 16,
+    "xl": 96
+  }
+}
