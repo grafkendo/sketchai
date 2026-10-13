@@ -21,7 +21,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from batch import batch_rows, substitute_placeholders
 from components import EtchError
+from provenance import manifest_for, render_id_for
 from render import compose, content_hash, edit, to_pdf, to_png
 
 
@@ -101,6 +103,46 @@ def cmd_render(args) -> int:
     return 0
 
 
+def cmd_batch(args) -> int:
+    import csv
+    template = _load(args.scene)
+    with open(args.csv, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    if args.out_dir:
+        os.makedirs(args.out_dir, exist_ok=True)
+    try:
+        prepared = batch_rows(template, rows)
+    except EtchError as e:
+        print(json.dumps({"error": e.to_dict()}, indent=2))
+        return 1
+    renders = []
+    for i, scene in prepared:
+        try:
+            result = compose(scene, brand_id=args.brand)
+        except EtchError as e:
+            print(json.dumps({"error": e.to_dict(), "row_index": i}, indent=2))
+            return 1
+        entry = {"row_index": i,
+                 "render_id": render_id_for(result["content_hash"], args.brand),
+                 "content_hash": result["content_hash"]}
+        if args.out_dir:
+            # WHY deterministic filename by index: row order is the input
+            # order, so row_0.png always means the first CSV row.
+            png_path = os.path.join(args.out_dir, f"row_{i}.png")
+            to_png(result["svg"], png_path)
+            entry["png"] = png_path
+        renders.append(entry)
+    print(json.dumps({"count": len(renders), "renders": renders}, indent=2))
+    return 0
+
+
+def cmd_provenance(args) -> int:
+    rid = render_id_for(args.hash, args.brand)
+    manifest = manifest_for(rid, args.hash, args.brand, args.parent or [])
+    print(json.dumps(manifest, indent=2))
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(prog="etch", description="Etch vector sketch engine")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -125,6 +167,20 @@ def main() -> int:
     r.add_argument("--pdf")
     r.add_argument("--svg")
     r.set_defaults(fn=cmd_render)
+
+    b = sub.add_parser("batch", help="render one scene per CSV row (mail-merge)")
+    b.add_argument("--scene", required=True, help="template scene JSON with {{placeholders}}")
+    b.add_argument("--csv", required=True, help="CSV file; headers are the placeholder keys")
+    b.add_argument("--brand", default="protograph")
+    b.add_argument("--out-dir", help="write row_<i>.png files here")
+    b.set_defaults(fn=cmd_batch)
+
+    p = sub.add_parser("provenance", help="print the signed-render manifest for a content hash")
+    p.add_argument("--hash", required=True, help="content_hash from a compose")
+    p.add_argument("--brand", default="protograph")
+    p.add_argument("--parent", action="append", default=[],
+                   help="parent render_id (repeatable, oldest first)")
+    p.set_defaults(fn=cmd_provenance)
 
     args = ap.parse_args()
     try:
