@@ -94,3 +94,80 @@ original hash; off-palette color correctly rejected naming node + rule.
 MCP server (`sketch.compose/edit/sequence`, `components.list`,
 `brand.apply/validate`, `assets.upload`, `fonts.list`), font files pinned
 in-repo, publish to Smithery + official registry, agent-oriented docs.
+
+---
+
+# Phase 2 — MCP server (built 2026-10-12)
+
+## What was added
+
+| File | Role |
+|---|---|
+| `engine/mcp_server.py` | FastMCP (mcp 1.30, stdio) wrapping the engine: 8 tools. Thin wrappers — zero render logic duplicated. |
+| `engine/test_mcp.py` | Spawns the server over stdio, speaks JSON-RPC, exercises all 8 tools + error paths. 12 assertions, all pass. |
+| `engine/MCP.md` | Agent-oriented docs: install, Claude Code/Cursor/generic config, tool table, worked compose→edit→sequence session. |
+| `engine/requirements.txt` | Pinned deps (mcp 1.30, cairosvg 2.9.1, Pillow 12.3.0, fastapi 0.143, uvicorn 0.54). |
+| `engine/fonts/` | Pinned brand TTFs (BricolageGrotesque-ExtraBold, HankenGrotesk-Medium) — the "pin fonts in-repo" item from Phase 1 notes. |
+| `engine/assets/` | Created at runtime by `assets_upload` (git-ignored by nature — user content). |
+| `smithery.yaml` | Repo-root Smithery manifest (stdio, no config needed). |
+| `Dockerfile` | Repo-root container image: python:3.12-slim + cairo/pango system libs + pinned fonts installed to the system font dir. |
+| `server.json` | Official MCP registry entry (draft — must pass `mcp-publisher validate`). |
+| `PUBLISHING.md` | Repo-root checklist for Mitchel: public repo, Smithery submit, Docker build+push to GHCR, `mcp-publisher` flow, Glama/mcpservers.org/PulseMCP, clean-machine smoke test. |
+
+Launch: `engine/.venv/bin/python engine/mcp_server.py` (stdio).
+
+## The 8 tools
+
+`sketch_compose` (scene → render_id, content_hash, svg, png_base64, bboxes,
+brand_validation; idempotent), `sketch_edit` (render_id + patch_ops → new
+render + diff.changed), `sketch_sequence` (scenes[] → storyboard_id, per-scene
+renders, contact-sheet PNG), `components_list` (token-cheap catalog),
+`brand_apply` (token resolution preview, no render), `brand_validate`
+(rules check, no render), `assets_upload` (base64 PNG/JPEG → asset_id + path),
+`fonts_list` (fontconfig families → styles → files).
+
+## Design decisions (why)
+
+- **Errors as `{"error": {...}}` dicts, not raised exceptions.** Spec §4:
+  the agent needs WHICH node/param failed, WHY, and a suggested fix in a
+  parseable shape. `EtchError.to_dict()` already carries it.
+- **Duplicated ~20 lines of store/compose logic instead of importing api.py.**
+  `api._do_compose` prints metering to stdout — and on stdio transport,
+  stdout IS the protocol. A stray log line would corrupt JSON-RPC framing.
+- **Pinned `mcp<2` (1.30.0).** mcp 2.x renamed FastMCP→MCPServer and changed
+  the server API; the stdio wire protocol is identical, so clients can't tell
+  the difference, but the v1 Python API is the battle-tested one.
+- **This SDK's stdio = newline-delimited JSON-RPC**, not Content-Length
+  framing. `test_mcp.py` speaks NDJSON (found the hard way: first version
+  hung; the server tried to parse `Content-Length:` as JSON).
+- **`assets_upload` returns a filesystem path for image `src`.** The engine
+  already embeds local files as base64 — no engine changes needed. An
+  `asset://` URI scheme would be nicer; deferred to Phase 3.
+- **Contact sheet via Pillow tiling**, not SVG: keeps the storyboard path
+  free of a second layout pass; per-scene renders stay individually
+  addressable.
+
+## Test results (2026-10-12)
+
+`test_mcp.py`: 12/12 pass — tools/list shows 8 tools; compose returns PNG
+bytes + SVG + bboxes; re-compose is idempotent; edit changes exactly
+`["s1-head"]`; bad node_id returns a structured error with a suggestion;
+2-scene sequence returns storyboard + decodable contact sheet; leaf filter
+returns 10 components; off-palette fill fails brand_validate naming the node;
+`$colors.lime` resolves to `#B6FF3B`; 4×4 PNG upload round-trips; fonts_list
+shows Bricolage Grotesk + Hanken Grotesk; unknown component type errors
+cleanly.
+
+## Known limitations (honest)
+
+1. **stdio-only.** No Streamable-HTTP transport yet — Smithery *hosted* mode
+   and some clients want HTTP. Phase 3 (the FastAPI app already exists).
+2. **In-memory stores** (renders, storyboards) — process lifetime, same as
+   Phase 1 API. Restart = fresh.
+3. **`server.json` is draft** — written against the documented registry shape;
+   `mcp-publisher validate` is the authority at publish time.
+4. **Docker image untested end-to-end here** — the Dockerfile installs the
+   same pinned deps + fonts, but the image build/push is Mitchel's step
+   (needs his Docker Hub/GHCR login).
+5. `assets_upload` has no size cap and no auth — fine for a local stdio
+   process; the hosted service (Phase 3) needs both.
