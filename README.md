@@ -1,5 +1,8 @@
 # Etch — "Etch-A-Sketch for AI" (working title)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![CI](https://github.com/grafkendo/sketchai/actions/workflows/ci.yml/badge.svg)](https://github.com/grafkendo/sketchai/actions/workflows/ci.yml)
+
 A service that lets **AI agents draw** — composing storyboards, slides, and
 social graphics from vector components instead of full prompt-to-image renders.
 
@@ -10,6 +13,48 @@ real fonts, surgical revisions.
 **Model:** open core (MIT) + hosted SaaS. The engine and MCP server are free
 for everyone; revenue comes from the managed cloud, pack marketplace, and
 enterprise tiers.
+
+## Quickstart
+
+```bash
+git clone https://github.com/grafkendo/sketchai.git
+cd sketchai
+python -m venv engine/.venv
+engine/.venv/bin/pip install -r engine/requirements.txt
+cd engine && ../engine/.venv/bin/python test_mcp.py   # 12/12 green = you're live
+```
+
+> **Windows:** `cairosvg` needs the native Cairo library. Install the GTK3
+> runtime from
+> https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+> (tick **"Set up PATH"**), restart your terminal, then run the tests.
+
+To give your agent the tools, point any MCP client at the server over stdio:
+
+```json
+{
+  "mcpServers": {
+    "etch": {
+      "command": "/path/to/sketchai/engine/.venv/bin/python",
+      "args": ["/path/to/sketchai/engine/mcp_server.py"]
+    }
+  }
+}
+```
+
+Full client setup (Claude Code, Cursor, generic): [engine/MCP.md](engine/MCP.md).
+
+## Demo
+
+A 6-slide branded carousel composed programmatically, then a surgical edit
+(headline + accent color changed on slide 3 only — everything else
+byte-identical):
+
+![Demo carousel slide 1](engine/demo_out/slide-1.png)
+*Slide 1 of the demo carousel — real Bricolage Grotesque type, exact brand hexes*
+
+![First Cursor-driven render](engine/hello_magenta.png)
+*The first render driven by an agent in Cursor: composed "HELLO", then edited to magenta*
 
 ## Docs
 
@@ -36,7 +81,11 @@ exposes 8 tools over stdio (`sketch_compose/edit/sequence`, `components_list`,
 `brand_apply`/`brand_validate`, `assets_upload`, `fonts_list`) — 12/12 tool tests
 green; `engine/MCP.md` has client setup docs; `smithery.yaml` + `Dockerfile` +
 `server.json` + `PUBLISHING.md` ready for registry publishing (needs repo public
-+ his accounts). Phase 3 (storyboards, packs, hosted SaaS billing) is next.
++ his accounts). **Open-source prep done (Oct 13, 2026):** MIT `LICENSE`,
+`CONTRIBUTING.md`, `SECURITY.md`, CI on Linux + Windows
+(`.github/workflows/ci.yml`), `pyproject.toml` for `pip install`. Phase 3
+(storyboards, packs, hosted SaaS billing) is next. The repo goes public when
+the author flips it.
 
 ## Also parked (not dropped)
 
