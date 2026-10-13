@@ -93,6 +93,7 @@ except OSError as exc:
 
 from brands import load_brand, resolve_tokens, validate
 from components import CONTAINERS, EtchError, KNOWN_TYPES
+from imagegen import resolve_node as resolve_gen_prompt_node
 from layout import Resolver, SVGWriter
 
 
@@ -149,9 +150,11 @@ def _check_structure(scene: dict) -> None:
                               "Add width/height, or use a badge (auto-sized) instead.")
         if t == "circle" and node.get("r") is None:
             raise RenderError(nid, "circle needs r (radius)", "Add r, e.g. r=90.")
-        if t == "image" and (node.get("width") is None or node.get("height") is None or not node.get("src")):
-            raise RenderError(nid, "image needs src, width and height",
-                              "src can be a local file path or an https:// URL.")
+        if t == "image" and (node.get("width") is None or node.get("height") is None
+                             or (not node.get("src") and not node.get("gen_prompt"))):
+            raise RenderError(nid, "image needs src (or gen_prompt), width and height",
+                              "src can be a local file path or an https:// URL; "
+                              "gen_prompt needs ETCH_IMAGE_PROVIDER=command configured.")
         if t in ("chart_bar",) and (node.get("width") is None or node.get("height") is None):
             raise RenderError(nid, f"{t} needs width and height", "")
         if t == "chart_donut" and node.get("size") is None:
@@ -175,8 +178,14 @@ def compose(scene: dict, brand_id: str | None = None,
     authored scene must keep its "$token" references so it can re-render
     under a different brand later.
     """
-    _check_structure(scene)
     working = copy.deepcopy(scene)
+    # WHY resolve before _check_structure: gen_prompt is a legal stand-in
+    # for src, but the structural check only understands src — resolving
+    # first lets the check validate the real asset path. Runs on the working
+    # copy so the caller's scene keeps its gen_prompt for re-resolution.
+    for _node in _iter_nodes(working["root"]):
+        resolve_gen_prompt_node(_node)
+    _check_structure(working)
 
     brand = load_brand(brand_id) if brand_id else None
     if brand is not None:
