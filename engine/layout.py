@@ -82,10 +82,14 @@ def _fontconfig_index() -> list[tuple[str, str, str]]:
         windir = os.environ.get("WINDIR", r"C:\Windows")
         out.extend(_ttf_name_table(os.path.join(windir, "Fonts")))
     try:
+        # WHY utf-8 + replace: on Windows, a stray fc-list (e.g. MSYS) can emit
+        # non-cp1252 bytes; text=True then leaves stdout as None after a decode
+        # failure in the reader thread.
         raw = subprocess.run(
             ["fc-list", ":", "file", "family", "style"],
-            capture_output=True, text=True, timeout=10,
-        ).stdout
+            capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=10,
+        ).stdout or ""
     except (OSError, subprocess.TimeoutExpired):
         return out
     for line in raw.splitlines():
