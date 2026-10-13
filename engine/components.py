@@ -187,18 +187,26 @@ def path(node_id: str, d: str, fill: str, width: float, height: float,
     return _node("path", node_id, **p)
 
 
-def image(node_id: str, src: str, width: float, height: float,
+def image(node_id: str, src: str | None, width: float, height: float,
           x: float | None = None, y: float | None = None,
           fit: str = "cover", clip: str | None = None,
-          opacity: float = 1) -> dict:
+          opacity: float = 1, gen_prompt: str | None = None) -> dict:
     """Asset slot. src = local file path (embedded as base64 — deterministic)
     or http(s) URL (passed through as href; never fetched at render time, so
-    renders can't change under you). fit: cover|contain. clip: circle|rounded."""
+    renders can't change under you). ALTERNATIVELY pass gen_prompt: the
+    diffusion bridge (imagegen.py) resolves it to a generated asset before
+    render validation — needs ETCH_IMAGE_PROVIDER=command configured, else
+    compose() raises naming the missing provider. fit: cover|contain.
+    clip: circle|rounded."""
     if fit not in ("cover", "contain"):
         raise ComponentError(node_id, f"fit must be 'cover' or 'contain', got '{fit}'", "")
+    if not src and not gen_prompt:
+        raise ComponentError(node_id, "image needs src or gen_prompt",
+                             "Pass src='path/to.png', or gen_prompt='...' with "
+                             "ETCH_IMAGE_PROVIDER=command configured.")
     p = dict(src=src, width=width, height=height, x=x, y=y, fit=fit,
-             clip=clip, opacity=opacity)
-    _require(node_id, p, "src", "width", "height")
+             clip=clip, opacity=opacity, gen_prompt=gen_prompt)
+    _require(node_id, p, "width", "height")
     return _node("image", node_id, **p)
 
 
