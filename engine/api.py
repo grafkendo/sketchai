@@ -93,11 +93,15 @@ def _do_compose(scene: dict, brand_id: str | None, strict: bool) -> dict:
     t0 = time.perf_counter()
     result = compose(scene, brand_id=brand_id, validate_brand=True)
     bv = result.get("brand_validation")
-    if bv and not bv["passed"] and strict:
+    # Strict blocks only on severity=="error" (see mcp_server._do_compose):
+    # "warn" rules guide but never stop a draft.
+    errs = [v for v in (bv.get("violations", []) if bv else [])
+            if v.get("severity", "error") == "error"]
+    if errs and strict:
         # Strict mode: brand violations block the render. Raise a single
         # EtchError carrying the full violation list as the reason so the
         # agent sees every problem in one round trip (not fail-fast).
-        lines = [f"[{v['node_id']}] {v['rule']}: {v['message']}" for v in bv["violations"]]
+        lines = [f"[{v['node_id']}] {v['rule']}: {v['message']}" for v in errs]
         raise EtchError(
             None,
             "brand validation failed: " + "; ".join(lines),
