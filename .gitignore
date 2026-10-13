@@ -12,3 +12,8 @@ Thumbs.db
 
 # Etch runtime artifacts (regenerated locally, not source)
 engine/assets/
+
+# Packaging artifacts
+build/
+*.egg-info/
+dist/
