@@ -93,8 +93,10 @@ def main() -> None:
         tools = _request(proc, "tools/list", {})["tools"]
         names = sorted(t["name"] for t in tools)
         expected = sorted(["sketch_compose", "sketch_edit", "sketch_sequence",
-                           "components_list", "brand_apply", "brand_validate",
-                           "assets_upload", "fonts_list"])
+                           "sketch_batch", "sketch_diff", "sketch_animate",
+                           "sketch_provenance", "components_list",
+                           "brand_apply", "brand_validate", "assets_upload",
+                           "fonts_list", "packs_list", "sketch_from_pack"])
         assert names == expected, f"tool mismatch: {names}"
         print(f"PASS  tools/list -> {len(names)} tools")
 
@@ -157,9 +159,9 @@ def main() -> None:
         bv = _call(proc, "brand_validate",
                    {"brand_id": "protograph", "scene": bad_scene})
         assert bv["passed"] is False, bv
-        assert bv["violations"][0]["node_id"] == "s1-head"
-        assert bv["violations"][0]["rule"] == "palette"
-        print(f"PASS  brand_validate -> violation on {bv['violations'][0]['node_id']}")
+        pal = [v for v in bv["violations"] if v["rule"] == "palette"]
+        assert pal and pal[0]["node_id"] == "s1-head", bv["violations"]
+        print(f"PASS  brand_validate -> violation on {pal[0]['node_id']}")
 
         # 8. brand_apply resolves tokens without rendering
         ba = _call(proc, "brand_apply",
