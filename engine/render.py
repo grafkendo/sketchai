@@ -27,8 +27,50 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
+import sys
 
-import cairosvg
+
+def _ensure_cairo_dll() -> None:
+    """Windows-only: make libcairo-2.dll loadable before cairosvg is imported.
+
+    WHY this exists: cairosvg needs Cairo's native DLL, which pip cannot ship
+    on Windows. The GTK3 runtime installer provides it, but (a) it doesn't
+    always land on PATH, and (b) Python 3.8+ ignores PATH for DLL loading
+    anyway — os.add_dll_directory() is the supported mechanism. Doing it here,
+    in code, means the fix travels with the repo: it works whether the server
+    is launched from a terminal, Claude Code, or Cursor, with zero user
+    configuration. Respects CAIROCFFI_DLL_DIRECTORIES if the user set it.
+    """
+    if sys.platform != "win32" or not hasattr(os, "add_dll_directory"):
+        return
+    candidates: list[str] = []
+    env = os.environ.get("CAIROCFFI_DLL_DIRECTORIES")
+    if env:
+        candidates.extend(env.split(os.pathsep))
+    candidates.append(r"C:\Program Files\GTK3-Runtime Win64\bin")
+    for directory in candidates:
+        if directory and os.path.isdir(directory):
+            try:
+                os.add_dll_directory(directory)
+            except OSError:
+                pass
+
+
+_ensure_cairo_dll()
+
+try:
+    import cairosvg
+except OSError as exc:
+    if sys.platform == "win32":
+        raise OSError(
+            "Etch needs the Cairo graphics library (libcairo-2.dll), which pip "
+            "cannot ship on Windows. Install the GTK3 runtime from "
+            "https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases "
+            "(tick 'Set up PATH' during install), restart your terminal, and re-run. "
+            f"Original error: {exc}"
+        ) from exc
+    raise
 
 from brands import load_brand, resolve_tokens, validate
 from components import CONTAINERS, EtchError, KNOWN_TYPES
