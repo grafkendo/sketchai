@@ -49,13 +49,11 @@ original hash; off-palette color correctly rejected naming node + rule.
 
 ## Environment notes
 
-- **Fonts are pinned in-repo** at `engine/fonts/` (Bricolage Grotesque
-  ExtraBold, Hanken Grotesk Medium). Index order: bundled → Windows Fonts →
-  `fc-list` (when present). Weight requests map to the closest installed cut;
-  missing families fall back to DejaVu Sans, then bundled Hanken (reported via
-  `was_fallback`, never silent). On Windows, `fc-list` is decoded as UTF-8
-  with `errors=replace` and empty stdout guarded — a stray MSYS `fc-list` used
-  to crash compose with `NoneType.splitlines`.
+- **Fonts: NO fallback needed.** Bricolage Grotesque (ExtraBold file) and
+  Hanken Grotesk (Medium file) are installed at `~/.fonts/` and resolve via
+  fontconfig — the demo PNGs use the real brand fonts. Weight requests map to
+  the closest installed style (800→ExtraBold, 500→Medium); anything else falls
+  back to the single installed cut, then DejaVu Sans (reported, never silent).
 - cairosvg 2.9.1 + Pillow 12.3.0 (venv), Python 3.12.3. PNG output verified
   byte-deterministic; SVG attribute order is fixed at every call site.
 - `content_hash` is over the **resolved** scene graph (tokens substituted),
@@ -69,10 +67,10 @@ original hash; off-palette color correctly rejected naming node + rule.
 2. **URL image slots are passed through, never fetched** — render can't change
    under you, but a dead URL means a broken `<image>` (validation only checks
    local files exist).
-3. **Text measurement == layout truth only for the resolved TTF.** Bundled
-   brand fonts make cross-machine renders match when agents use `$fonts.*`
-   (or omit font and hit the Hanken default). A machine-specific system font
-   can still diverge if a scene names a family that isn't bundled.
+3. **Text measurement == layout truth only for installed fonts.** On a machine
+   without Bricolage/Hanken, output silently uses fallback metrics — same
+   machine = deterministic, cross-machine = may differ. Phase 2 should pin
+   font files in-repo.
 4. **Charts are simple** (bar + donut); no axes, legends, or line charts yet.
 5. **No `sketch.sequence`/storyboard endpoint yet** — demo does 6 separate
    renders; sequencing is Phase 3 per roadmap.
@@ -173,3 +171,65 @@ cleanly.
    (needs his Docker Hub/GHCR login).
 5. `assets_upload` has no size cap and no auth — fine for a local stdio
    process; the hosted service (Phase 3) needs both.
+
+## Open-source prep (2026-10-13)
+
+Per Mitchel's authorization (all of the open-source checklist except flipping
+the repo public, which remains his call):
+
+- **MIT `LICENSE`** at repo root (`Copyright (c) 2026 Mitchel`).
+- **Secret scan**: clean. Every hit was benign — "token" = brand tokens /
+  token-cheap schemas, `ETCH_API_KEY` is only ever read from the environment
+  (no value stored), no `.env` files, no key-like strings.
+- **`CONTRIBUTING.md`**: dev setup (incl. the Windows GTK3/Cairo requirement),
+  both test suites, the hard rules (determinism, errors-that-teach, real fonts
+  only, WHY-comments), and the don't-break list (the four launch paths below).
+- **`SECURITY.md`**: private vulnerability reporting via GitHub, supported =
+  latest on main, no email.
+- **CI** (`.github/workflows/ci.yml`): push/PR to main × {ubuntu-latest,
+  windows-latest} × Python 3.12. Windows job silent-installs the GTK3 runtime
+  first (cairosvg needs libcairo-2.dll). YAML validated by parse; first real
+  run happens on GitHub.
+- **README**: badges (MIT license, CI), Quickstart, demo images, updated status.
+- **`pyproject.toml`**: `pip install .` yields `etch-sketch 0.2.0` with an
+  `etch-mcp` console script. See "Packaging" below.
+
+## Packaging
+
+`pyproject.toml` (setuptools) installs the `engine/` directory as a top-level
+`engine` package, with `fonts/*.ttf` and `brands/*.json` as package-data.
+Entry point: `etch-mcp = engine.mcp_server:main`.
+
+Two minimal code changes made this work without touching the existing
+workflows:
+
+1. **`engine/__init__.py`** gained a `sys.path` shim (register the engine dir
+   at import time). WHY: the modules use bare sibling imports
+   (`from components import ...`) so they also run standalone; when imported
+   as a *package* (`import engine.mcp_server` after pip install), the engine
+   dir isn't on sys.path — but `__init__.py` runs first, so the shim keeps
+   both worlds alive. Nothing in the repo imports the `engine` package today,
+   so no existing workflow is affected.
+2. **`engine/mcp_server.py`** gained a `main()` wrapper around `mcp.run()` for
+   the console script. The `if __name__ == "__main__"` direct launch is
+   unchanged.
+
+Verified 2026-10-13 (this machine):
+- Fresh venv in /tmp → `pip install /home/hatch/workspace/agent-tools-lab` →
+  `etch-mcp` starts, answers `tools/list` (8 tools), and `sketch_compose`
+  renders a real PNG using the *bundled* Bricolage TTF with `fc-list` hidden
+  from PATH (proves no fontconfig dependency).
+- Installed `site-packages/engine/` contains exactly: modules, `fonts/`,
+  `brands/` — no `.venv`, no `demo_out/`, no `assets/`.
+- All four existing workflows still pass in the repo venv: `test_mcp.py`
+  (12/12), `test_determinism.py` (5/5), `demo.py`, and direct launch
+  `python engine/mcp_server.py` from the repo root (initialize answered).
+
+Caveats:
+- `pip install` needs the Cairo *system* library on the target machine
+  (Linux: `libcairo2` via apt; Windows: GTK3 runtime — see engine/MCP.md).
+  pip cannot ship it; same constraint as the venv workflow.
+- `import engine` from *inside* the `engine/` directory never worked
+  (pre-existing; Python looks for `engine/engine`) — unchanged by this work.
+- Version is `0.2.0` in pyproject vs `0.1.0` in `engine/__init__.py`; unify at
+  the 1.0 cut.
