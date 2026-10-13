@@ -76,8 +76,10 @@ def main() -> None:
         "t-badge", "DETERMINISM", fill="#123456")  # not in Protograph palette
     rb = compose(bad, brand_id="protograph")
     assert not rb["brand_validation"]["passed"]
-    v = rb["brand_validation"]["violations"][0]
-    assert v["node_id"] == "t-badge" and v["rule"] == "palette"
+    pal = [v for v in rb["brand_validation"]["violations"]
+           if v["rule"] == "palette"]
+    assert pal and pal[0]["node_id"] == "t-badge", rb["brand_validation"]["violations"]
+    v = pal[0]
     print(f"PASS  brand violation caught: [{v['node_id']}] {v['rule']} — {v['message'][:60]}...")
 
     print("\nAll determinism tests passed.")
