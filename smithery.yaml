@@ -1,0 +1,21 @@
+# Smithery.ai configuration — https://smithery.ai/docs
+# Smithery scans this file at the repo root to know how to start the server.
+# stdio: one-click local install via smithery.ai. No config/secrets needed —
+# the server runs with zero credentials (brand fonts ship in engine/fonts/).
+
+startCommand:
+  type: stdio
+
+configSchema:
+  type: object
+  properties: {}
+
+commandFunction:
+  |-
+    config => ({
+      command: 'python',
+      args: ['engine/mcp_server.py'],
+      env: process.env
+    })
+
+exampleConfig: {}
