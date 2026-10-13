@@ -10,6 +10,21 @@ cd ~/workspace/agent-tools-lab/engine
 .venv/bin/python -c "import mcp"   # already installed in the venv
 ```
 
+### Windows note: the Cairo DLL
+
+`cairosvg` needs the native Cairo library (`libcairo-2.dll`), which pip cannot
+ship on Windows. Two steps:
+
+1. Install the GTK3 runtime from
+   https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+   (run the `gtk3-runtime-...-ts-win64.exe`, tick **"Set up PATH"**).
+2. Restart your terminal. That's it — `render.py` registers the GTK `bin`
+   directory via `os.add_dll_directory()` at import time, so no manual PATH or
+   env-var configuration is needed, including when Claude Code/Cursor spawns
+   the server.
+
+Verify: `engine\.venv\Scripts\python -c "import cairosvg; print('cairo ok')"`
+
 The server runs over **stdio** (newline-delimited JSON-RPC). Launch command:
 
 ```
