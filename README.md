@@ -31,7 +31,12 @@ Spec + research + whitepaper complete (Oct 2026). **Phase 0+1 engine built
 components, constraint/flow layout, brand-token enforcement at render time,
 content-hashed compose/edit loop, FastAPI service (`POST /v1/renders`,
 `PATCH /v1/renders/{id}`), CLI, and a 6-slide demo proving surgical edits
-(`engine/demo_out/`). Phase 2 (MCP server + registry publishing) is next.
+(`engine/demo_out/`). **Phase 2 MCP server built (Oct 12, 2026):** `engine/mcp_server.py`
+exposes 8 tools over stdio (`sketch_compose/edit/sequence`, `components_list`,
+`brand_apply`/`brand_validate`, `assets_upload`, `fonts_list`) — 12/12 tool tests
+green; `engine/MCP.md` has client setup docs; `smithery.yaml` + `Dockerfile` +
+`server.json` + `PUBLISHING.md` ready for registry publishing (needs repo public
++ his accounts). Phase 3 (storyboards, packs, hosted SaaS billing) is next.
 
 ## Also parked (not dropped)
 
