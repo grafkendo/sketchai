@@ -12,6 +12,7 @@ Thumbs.db
 
 # Etch runtime artifacts (regenerated locally, not source)
 engine/assets/
+engine/meter.jsonl
 
 # Packaging artifacts
 build/
