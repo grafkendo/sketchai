@@ -10,6 +10,21 @@ social graphics from vector components instead of full prompt-to-image renders.
 not like painters (pixels + luck). Far less compute, deterministic editing,
 real fonts, surgical revisions.
 
+## ✏️ Editable in Illustrator & Figma — not a flat picture
+
+Every Etch render is a **real SVG file first**, and a PNG second. The SVG is
+the source of truth, so anything Etch makes can be opened and manipulated in
+professional design tools:
+
+- **Adobe Illustrator:** open the `.svg` (or the PDF export) directly — every shape is a real vector.
+- **Figma:** drag the `.svg` onto the canvas — it imports as editable vector and text layers.
+- **Text stays text.** Headlines are real `<text>` elements in a named font (not outlines, not pixels), so you can retype them in either tool.
+- **Every component is a named layer.** A node's `node_id` becomes its SVG id/group (`s1-head`, `s1-curve`, …), so pieces arrive labeled, not as anonymous blobs.
+- **Fonts travel with the repo** in `engine/fonts/` (Bricolage Grotesque + Hanken Grotesk). Install those, or Illustrator/Figma will substitute a fallback font.
+- One honest limit: Etch's stack/grid layout becomes flat positions in the SVG. Moving a piece in Figma won't reflow the rest — for reflow-style edits, use Etch's own `sketch_edit`, then re-export.
+
+Try it: download [`examples/hello-editable.svg`](examples/hello-editable.svg), drag it into Figma or open it in Illustrator, and retype the headline.
+
 **Model:** open core (MIT) + hosted SaaS. The engine and MCP server are free
 for everyone; revenue comes from the managed cloud, pack marketplace, and
 enterprise tiers.
@@ -56,8 +71,11 @@ byte-identical):
 ![First Cursor-driven render](engine/hello_magenta.png)
 *The first render driven by an agent in Cursor: composed "HELLO", then edited to magenta*
 
-![Airport luggage app wireframe](examples/airport-luggage-wireframe.png)
-*An agent-composed wireframe storyboard (added Oct 18, 2026): four app screens — Airport Luggage home, Find My Luggage, Report Lost, and Customer Service — sketched as vector components with real type, form fields, and navigation in one sequence. This is what Etch is for beyond slides: cheap, editable UI sketching before any code is written.*
+![Editable SVG example](examples/hello-editable.svg)
+*The same kind of render as an editable SVG: [examples/hello-editable.svg](examples/hello-editable.svg) — download it and open it in Illustrator or Figma. The headline is live text, and every element is a named, movable layer.*
+
+![Game level layout](examples/game-level-layout.png)
+*An agent-composed game level layout (1280×720): HUD with score / coins / world / time, a lives badge, platforms, question blocks, coins, a character, and a pipe — all vector components with real type. Etch works for level design and storyboarding, not just slides.*
 
 ## Docs
 
