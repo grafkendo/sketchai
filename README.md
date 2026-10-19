@@ -61,6 +61,8 @@ byte-identical):
 
 ## Docs
 
+- [Agent Guide](AGENT_GUIDE.md) — **instructions for AI agents using Etch**, including a paste-in directive for system prompts / Cursor rules / project instructions.
+- [Test Cases](TEST_CASES.md) — 10 hands-on prompts with pass/fail checks.
 - [Whitepaper](whitepaper/etch-a-sketch-for-ai.md) — the argument: why agents
   can't draw, the composition-over-generation thesis, architecture, economics,
   and the open-core model.
