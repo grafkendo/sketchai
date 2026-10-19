@@ -14,6 +14,9 @@ Thumbs.db
 engine/assets/
 engine/meter.jsonl
 
+# Local audio notes (deliverables for the author, not repo source)
+audio-notes/
+
 # Packaging artifacts
 build/
 *.egg-info/
