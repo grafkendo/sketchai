@@ -56,6 +56,9 @@ byte-identical):
 ![First Cursor-driven render](engine/hello_magenta.png)
 *The first render driven by an agent in Cursor: composed "HELLO", then edited to magenta*
 
+![Airport luggage app wireframe](examples/airport-luggage-wireframe.png)
+*An agent-composed wireframe storyboard (added Oct 18, 2026): four app screens — Airport Luggage home, Find My Luggage, Report Lost, and Customer Service — sketched as vector components with real type, form fields, and navigation in one sequence. This is what Etch is for beyond slides: cheap, editable UI sketching before any code is written.*
+
 ## Docs
 
 - [Whitepaper](whitepaper/etch-a-sketch-for-ai.md) — the argument: why agents
