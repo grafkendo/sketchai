@@ -50,6 +50,9 @@ HOW TO WORK:
    content_hash, where the PNG was saved, and show the image if you can.
    If a tool returns an "error" field, read its suggestion, fix that exact
    thing, and retry once — do not silently fall back to image generation.
+8. Renders return file paths by default (png_path / svg_path under
+   engine/assets/renders/). Open those files; only pass include_png=true
+   when you have no filesystem access.
 
 RULES: Determinism is a feature — re-composing an identical scene returning
 the same content_hash is correct, not a bug. The render store is in-memory:
