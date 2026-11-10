@@ -100,23 +100,50 @@ def main() -> None:
         assert names == expected, f"tool mismatch: {names}"
         print(f"PASS  tools/list -> {len(names)} tools")
 
-        # 1. compose a 2-node scene
+        # Known content_hash for the fixed "Hello" Protograph scene — must
+        # stay stable across lean-mode (determinism contract).
+        HELLO_HASH = (
+            "6bed9482611b8c3149fd56c0519c3f25f95b555c3247e556513786cdbafd8f7f"
+        )
+
+        # 1. compose a 2-node scene — lean default (paths, no png_base64)
         r1 = _call(proc, "sketch_compose", {"scene": _scene("Hello")})
         assert "error" not in r1, r1
         assert r1["render_id"].startswith("r_") and len(r1["content_hash"]) == 64
-        png = base64.b64decode(r1["png_base64"])
+        assert r1["content_hash"] == HELLO_HASH, (
+            f"content_hash drifted: {r1['content_hash']}")
+        assert "png_base64" not in r1, "lean default must omit png_base64"
+        assert os.path.isfile(r1["png_path"]), r1["png_path"]
+        with open(r1["png_path"], "rb") as f:
+            png = f.read()
         assert png[:8] == b"\x89PNG\r\n\x1a\n", "not a PNG"
+        assert r1["png_bytes"] == len(png)
+        assert os.path.isfile(r1["svg_path"]), r1["svg_path"]
+        with open(r1["svg_path"], encoding="utf-8") as f:
+            svg_on_disk = f.read()
         assert r1["svg"].lstrip().startswith("<svg")
+        assert svg_on_disk == r1["svg"], "svg_path contents must equal svg"
         assert "s1-head" in r1["bboxes"], "bboxes missing node"
         assert r1["brand_validation"]["passed"] is True
-        print(f"PASS  sketch_compose -> {r1['render_id']} hash={r1['content_hash'][:12]}")
+        print(f"PASS  sketch_compose lean -> {r1['render_id']} "
+              f"hash={r1['content_hash'][:12]} path={r1['png_path']}")
+
+        # 1b. include_png=true returns base64 matching the file on disk
+        r1png = _call(proc, "sketch_compose",
+                      {"scene": _scene("Hello"), "include_png": True})
+        assert "png_base64" in r1png, r1png.keys()
+        decoded = base64.b64decode(r1png["png_base64"])
+        with open(r1png["png_path"], "rb") as f:
+            on_disk = f.read()
+        assert decoded == on_disk, "png_base64 must match png_path bytes"
+        print("PASS  sketch_compose include_png=true matches png_path")
 
         # 2. idempotent re-compose -> same render_id
         r1b = _call(proc, "sketch_compose", {"scene": _scene("Hello")})
         assert r1b["render_id"] == r1["render_id"], "compose not idempotent"
         print("PASS  sketch_compose idempotent (same scene -> same render_id)")
 
-        # 3. surgical edit
+        # 3. surgical edit — lean + diff.changed
         r2 = _call(proc, "sketch_edit", {
             "render_id": r1["render_id"],
             "patch_ops": [{"op": "set_text", "node_id": "s1-head", "text": "World"}],
@@ -125,7 +152,9 @@ def main() -> None:
         assert r2["render_id"] != r1["render_id"], "edit must change the hash"
         assert r2["diff"]["changed"] == ["s1-head"], r2["diff"]
         assert r2["previous_render_id"] == r1["render_id"]
-        print(f"PASS  sketch_edit -> diff.changed={r2['diff']['changed']}")
+        assert "png_base64" not in r2, "lean edit must omit png_base64"
+        assert os.path.isfile(r2["png_path"]), r2["png_path"]
+        print(f"PASS  sketch_edit lean -> diff.changed={r2['diff']['changed']}")
 
         # 4. bad edit -> structured error naming the node
         bad = _call(proc, "sketch_edit", {
@@ -136,15 +165,34 @@ def main() -> None:
         assert bad["error"]["suggestion"], "error must suggest a fix"
         print(f"PASS  bad edit -> error names node: {bad['error']['reason'][:60]}...")
 
-        # 5. sequence of 2 scenes
+        # 5. sequence of 2 scenes — lean contact sheet on disk
         sq = _call(proc, "sketch_sequence",
                    {"scenes": [_scene("One"), _scene("Two", "$colors.azure")]})
         assert "error" not in sq, sq
         assert sq["storyboard_id"].startswith("sb_")
         assert len(sq["renders"]) == 2
-        sheet = base64.b64decode(sq["contact_sheet_base64"])
+        assert "contact_sheet_base64" not in sq, "lean sequence omits base64"
+        assert os.path.isfile(sq["contact_sheet_path"]), sq["contact_sheet_path"]
+        with open(sq["contact_sheet_path"], "rb") as f:
+            sheet = f.read()
         assert sheet[:8] == b"\x89PNG\r\n\x1a\n", "contact sheet not a PNG"
-        print(f"PASS  sketch_sequence -> {sq['storyboard_id']} + contact sheet")
+        assert sq["contact_sheet_bytes"] == len(sheet)
+        print(f"PASS  sketch_sequence lean -> {sq['storyboard_id']} + "
+              f"{sq['contact_sheet_path']}")
+
+        # 5b. sketch_diff lean (path, no base64)
+        d = _call(proc, "sketch_diff", {
+            "render_id_a": r1["render_id"], "render_id_b": r2["render_id"],
+        })
+        assert "error" not in d, d
+        assert "diff_base64" not in d, "lean diff omits diff_base64"
+        assert os.path.isfile(d["diff_path"]), d["diff_path"]
+        with open(d["diff_path"], "rb") as f:
+            diff_png = f.read()
+        assert diff_png[:8] == b"\x89PNG\r\n\x1a\n"
+        assert d["diff_bytes"] == len(diff_png)
+        print(f"PASS  sketch_diff lean -> {d['diff_path']} "
+              f"pct={d['pct_changed']}")
 
         # 6. components_list (filtered)
         cat = _call(proc, "components_list", {"type_filter": "leaf"})

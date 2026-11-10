@@ -14,6 +14,17 @@ Thumbs.db
 engine/assets/
 engine/meter.jsonl
 
+# Local MCP smoke-test renders (keep on disk, do not commit)
+engine/lost_luggage_icon.png
+engine/luggage_app_wireframes.png
+engine/luggage_app_wireframes.svg
+engine/luggage_app_wireframes_v2.png
+engine/luggage_app_wireframes_v2.svg
+engine/mario_game_layout.png
+engine/rick_hunter_etch.png
+engine/rick_hunter_etch.svg
+engine/why_agents_carousel.png
+
 # Local audio notes (deliverables for the author, not repo source)
 audio-notes/
 

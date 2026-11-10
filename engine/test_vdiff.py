@@ -147,7 +147,10 @@ def test_mcp() -> None:
         assert len(d["regions"]) == 1, f"expected 1 region, got {d['regions']}"
         assert _overlaps(d["regions"][0], head_box), \
             f"region {d['regions'][0]} doesn't overlap edited node {head_box}"
-        assert base64.b64decode(d["diff_base64"])[:8] == b"\x89PNG\r\n\x1a\n"
+        assert "diff_base64" not in d
+        assert os.path.isfile(d["diff_path"]), d["diff_path"]
+        with open(d["diff_path"], "rb") as f:
+            assert f.read(8) == b"\x89PNG\r\n\x1a\n"
         print(f"PASS  one-node edit -> {d['pct_changed']}% in 1 region overlapping the node")
 
         bad = _call(proc, "sketch_diff",
