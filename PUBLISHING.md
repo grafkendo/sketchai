@@ -34,9 +34,12 @@ Uses `server.json` at the repo root + the `mcp-publisher` CLI.
 2. [ ] **Build + push the Docker image** (the registry entry points at it):
      ```bash
      cd ~/workspace/agent-tools-lab   # or wherever you cloned sketchai
-     docker build -t ghcr.io/grafkendo/sketchai-mcp:0.2.0 .
+     docker build -t ghcr.io/grafkendo/sketchai-mcp:0.2.0 -t ghcr.io/grafkendo/sketchai-mcp:latest .
      docker push ghcr.io/grafkendo/sketchai-mcp:0.2.0
+     docker push ghcr.io/grafkendo/sketchai-mcp:latest
      ```
+     (Both tags: `server.json`'s package identifier points at `:latest`;
+     its version fields say 0.2.0. Push both or the registry entry 404s.)
      (Needs `docker login ghcr.io` with a classic PAT that has
      `write:packages` scope. Make the package **public** after pushing:
      github.com → your profile → Packages → sketchai-mcp → Package settings.)
