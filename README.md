@@ -36,7 +36,7 @@ git clone https://github.com/grafkendo/sketchai.git
 cd sketchai
 python -m venv engine/.venv
 engine/.venv/bin/pip install -r engine/requirements.txt
-cd engine && ../engine/.venv/bin/python test_mcp.py   # 12/12 green = you're live
+cd engine && ../engine/.venv/bin/python test_mcp.py   # all green = you're live
 ```
 
 > **Windows:** `cairosvg` needs the native Cairo library. Install the GTK3
@@ -94,21 +94,30 @@ byte-identical):
 
 ## Status
 
-Spec + research + whitepaper complete (Oct 2026). **Phase 0+1 engine built
-(Oct 12, 2026):** `engine/` holds the deterministic render core — 14 typed
-components, constraint/flow layout, brand-token enforcement at render time,
-content-hashed compose/edit loop, FastAPI service (`POST /v1/renders`,
-`PATCH /v1/renders/{id}`), CLI, and a 6-slide demo proving surgical edits
-(`engine/demo_out/`). **Phase 2 MCP server built (Oct 12, 2026):** `engine/mcp_server.py`
-exposes 8 tools over stdio (`sketch_compose/edit/sequence`, `components_list`,
-`brand_apply`/`brand_validate`, `assets_upload`, `fonts_list`) — 12/12 tool tests
-green; `engine/MCP.md` has client setup docs; `smithery.yaml` + `Dockerfile` +
-`server.json` + `PUBLISHING.md` ready for registry publishing (needs repo public
-+ his accounts). **Open-source prep done (Oct 13, 2026):** MIT `LICENSE`,
-`CONTRIBUTING.md`, `SECURITY.md`, CI on Linux + Windows
-(`.github/workflows/ci.yml`), `pyproject.toml` for `pip install`. Phase 3
-(storyboards, packs, hosted SaaS billing) is next. The repo goes public when
-the author flips it.
+**v0.2.0 — working and tested.** All 10 engine test suites pass.
+
+- **Engine (Phase 0+1, Oct 12, 2026):** deterministic render core in
+  `engine/` — 14 typed components, constraint/flow layout, brand-token
+  enforcement at render time (palette, fonts, no-pure-black, WCAG contrast,
+  max-colors), content-hashed compose/edit loop, FastAPI service, CLI, and a
+  6-slide demo proving surgical edits (`engine/demo_out/`).
+- **MCP server (Phase 2, Oct 12–13, 2026):** `engine/mcp_server.py` exposes
+  **14 tools** over stdio — compose / edit / sequence / batch / from-pack,
+  visual diff, animation (deterministic GIFs), signed provenance manifests,
+  component packs, brand apply/validate, components/fonts listing, and asset
+  upload. Also includes a hosted HTTP mode with API-key auth and per-render
+  credit metering, and a diffusion bridge that drops generated images into
+  image slots. Client setup: `engine/MCP.md`.
+- **Open source (Oct 13, 2026):** MIT `LICENSE`, `CONTRIBUTING.md`,
+  `SECURITY.md`, `pyproject.toml` (`pip install` gives you the `etch-mcp`
+  command), `smithery.yaml` + `Dockerfile` + `server.json` for registry
+  publishing (see `PUBLISHING.md`).
+- **Known v0.2.0 trait:** render responses inline the PNG as base64, which
+  costs the calling model extra context tokens (~10–20k per compose). A
+  lean, file-path-based response mode is designed and on the roadmap —
+  until then, clients on a token budget should expect that cost.
+- **Next:** registry distribution (Smithery, the official MCP registry,
+  directories). Hosted SaaS + billing is a later phase, not yet built.
 
 ## Also parked (not dropped)
 
