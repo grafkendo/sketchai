@@ -50,6 +50,9 @@ mcp = FastMCP("etch")
 RENDERS: dict[str, dict] = {}
 STORYBOARDS: dict[str, dict] = {}
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+# WHY under assets/: already gitignored; same convention as sketch_animate's
+# assets/animated/. Writing files never feeds content_hash — paths are I/O.
+RENDERS_DIR = os.path.join(ASSETS_DIR, "renders")
 
 
 # ------------------------------------------------------- helpers
@@ -66,6 +69,41 @@ def _err(e: EtchError) -> dict:
 def _provenance_for(record: dict) -> dict:
     return manifest_for(record["render_id"], record["content_hash"],
                         record["brand_id"], record.get("parents", []))
+
+
+def _write_bytes(path: str, data: bytes) -> dict:
+    """Write raw bytes to path (lazy parent dir). Returns path + byte size."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(data)
+    return {"path": path, "bytes": len(data)}
+
+
+def _write_render_files(record: dict) -> dict:
+    """Write <render_id>.png + .svg under engine/assets/renders/.
+
+    Returns png_path, png_bytes, svg_path, svg_bytes, and the PNG bytes
+    (for optional base64 without a second rasterize). Does NOT affect
+    content_hash, render_id, or determinism — no timestamps in paths or
+    responses. Mirrors sketch_animate's gif_path convention.
+    """
+    os.makedirs(RENDERS_DIR, exist_ok=True)
+    rid = record["render_id"]
+    png_path = os.path.join(RENDERS_DIR, f"{rid}.png")
+    svg_path = os.path.join(RENDERS_DIR, f"{rid}.svg")
+    png = to_png(record["svg"])
+    with open(png_path, "wb") as f:
+        f.write(png)
+    svg = record["svg"]
+    with open(svg_path, "w", encoding="utf-8") as f:
+        f.write(svg)
+    return {
+        "png_path": png_path,
+        "png_bytes": len(png),
+        "svg_path": svg_path,
+        "svg_bytes": len(svg.encode("utf-8")),
+        "png": png,
+    }
 
 
 # ------------------------------------------------------- metering
@@ -159,12 +197,27 @@ def _public(record: dict) -> dict:
                                    "width", "height", "bboxes", "brand_validation")}
 
 
-def _full_response(record: dict) -> dict:
-    """The standard render payload: metadata + svg + PNG + provenance."""
-    png = to_png(record["svg"])
+def _full_response(record: dict, include_png: bool = False,
+                   include_svg: bool = True) -> dict:
+    """Standard render payload — lean by default (paths on disk, no base64).
+
+    Always writes PNG+SVG under engine/assets/renders/ and returns
+    png_path, png_bytes, svg_path, svg_bytes, metadata, provenance.
+    include_png=True also adds png_base64 (back-compat for clients without
+    a filesystem). include_svg=True (default) includes the svg string;
+    False omits it (svg_path still returned). Writing files never feeds
+    content_hash — same scene+brand = same hash as before lean mode.
+    """
+    files = _write_render_files(record)
     out = _public(record)
-    out["svg"] = record["svg"]
-    out["png_base64"] = base64.b64encode(png).decode("ascii")
+    out["png_path"] = files["png_path"]
+    out["png_bytes"] = files["png_bytes"]
+    out["svg_path"] = files["svg_path"]
+    out["svg_bytes"] = files["svg_bytes"]
+    if include_svg:
+        out["svg"] = record["svg"]
+    if include_png:
+        out["png_base64"] = base64.b64encode(files["png"]).decode("ascii")
     out["provenance"] = _provenance_for(record)
     return out
 
@@ -174,7 +227,8 @@ def _full_response(record: dict) -> dict:
 @mcp.tool()
 @_metered(1)
 def sketch_compose(scene: dict, brand_id: str | None = "protograph",
-                   strict: bool = True) -> dict:
+                   strict: bool = True, include_png: bool = False,
+                   include_svg: bool = True) -> dict:
     """Compose a scene graph into a deterministic render.
 
     scene: {"canvas": {"width": 1080, "height": 1080}, "root": {...node tree...}}.
@@ -184,14 +238,19 @@ def sketch_compose(scene: dict, brand_id: str | None = "protograph",
     "height": 1080, "fill": "$colors.bg", "children": [
       {"type": "text", "node_id": "s1-head", "text": "Hello",
        "font": "$fonts.display", "size": 120, "fill": "$colors.lime"}]}.
-    Returns render_id, content_hash, bboxes, brand_validation, svg,
-    and png_base64. Same scene+brand = same content_hash (idempotent).
+    Returns render_id, content_hash, bboxes, brand_validation, provenance,
+    png_path, png_bytes, svg_path, svg_bytes, and (by default) the svg
+    string. Lean default: NO png_base64 — open png_path on disk. Pass
+    include_png=true to also inline png_base64; include_svg=false omits
+    the svg string (path still returned). Same scene+brand = same
+    content_hash (idempotent).
     """
     try:
         record = _do_compose(scene, brand_id, strict)
     except EtchError as e:
         return _err(e)
-    return _full_response(record)
+    return _full_response(record, include_png=include_png,
+                          include_svg=include_svg)
 
 
 @mcp.tool()
@@ -214,13 +273,16 @@ def packs_list() -> dict:
 @_metered(0)
 def sketch_from_pack(pack: str, fragment: str, params: dict | None = None,
                      brand_id: str | None = "protograph",
-                     strict: bool = True) -> dict:
+                     strict: bool = True, include_png: bool = False,
+                     include_svg: bool = True) -> dict:
     """Render a pack fragment with params filled in.
 
     Example: sketch_from_pack("carousel-basics", "hook",
     {"headline": "Hello", "subline": "World"}). Missing params error naming
-    exactly which ones. Returns the standard render payload (render_id,
-    content_hash, svg, png_base64, provenance, brand_validation).
+    exactly which ones. Returns the standard lean render payload
+    (render_id, content_hash, png_path, svg_path, svg, provenance,
+    brand_validation). Pass include_png=true for png_base64;
+    include_svg=false omits the svg string.
     """
     from packs import get_fragment_scene
     try:
@@ -228,7 +290,8 @@ def sketch_from_pack(pack: str, fragment: str, params: dict | None = None,
         record = _do_compose(scene, brand_id or pack_data.get("brand"), strict)
     except EtchError as e:
         return _err(e)
-    out = _full_response(record)
+    out = _full_response(record, include_png=include_png,
+                         include_svg=include_svg)
     out["pack"] = pack
     out["fragment"] = fragment
     return out
@@ -268,12 +331,14 @@ def sketch_batch(template_scene: dict, rows: list[dict],
 
 @mcp.tool()
 @_metered(0)
-def sketch_diff(render_id_a: str, render_id_b: str) -> dict:
+def sketch_diff(render_id_a: str, render_id_b: str,
+                include_diff_png: bool = False) -> dict:
     """Visual diff: pixel-compare two renders, highlight what changed.
 
-    Returns {"render_id_a", "render_id_b", "pct_changed" (0-100),
-    "regions": [{x, y, width, height}] bounding boxes of changed areas,
-    "diff_base64": PNG with changed pixels painted red on a dimmed base}.
+    Returns render_id_a/b, pct_changed (0-100), regions (changed bboxes),
+    diff_path + diff_bytes (PNG written under engine/assets/renders/
+    as diff-<a>-<b>.png). Lean default: NO diff_base64 — open diff_path.
+    Pass include_diff_png=true to also inline the old diff_base64.
     Use after sketch_edit to VERIFY only the intended nodes moved.
     Both renders must share a canvas size.
     """
@@ -290,15 +355,21 @@ def sketch_diff(render_id_a: str, render_id_b: str) -> dict:
         result = visual_diff(to_png(ra["svg"]), to_png(rb["svg"]))
     except EtchError as e:
         return _err(e)
-    return {
+    diff_name = f"diff-{render_id_a}-{render_id_b}.png"
+    written = _write_bytes(os.path.join(RENDERS_DIR, diff_name), result["diff_png"])
+    out = {
         "render_id_a": render_id_a,
         "render_id_b": render_id_b,
         "content_hash_a": ra["content_hash"],
         "content_hash_b": rb["content_hash"],
         "pct_changed": result["pct_changed"],
         "regions": result["regions"],
-        "diff_base64": base64.b64encode(result["diff_png"]).decode("ascii"),
+        "diff_path": written["path"],
+        "diff_bytes": written["bytes"],
     }
+    if include_diff_png:
+        out["diff_base64"] = base64.b64encode(result["diff_png"]).decode("ascii")
+    return out
 
 
 @mcp.tool()
@@ -364,15 +435,18 @@ def sketch_provenance(render_id: str) -> dict:
 
 @mcp.tool()
 @_metered(1)
-def sketch_edit(render_id: str, patch_ops: list[dict]) -> dict:
+def sketch_edit(render_id: str, patch_ops: list[dict],
+                include_png: bool = False, include_svg: bool = True) -> dict:
     """Surgically edit a previous render. patch_ops target node_ids.
 
     Ops: set_text {node_id, text}, set_fill {node_id, fill},
     set_attr {node_id, attrs}, replace_node {node_id, node},
     add_node {parent_id, node, index?}, remove_node {node_id}.
     Example: [{"op": "set_text", "node_id": "s1-head", "text": "New headline"}].
-    Returns new render_id, new hash, diff.changed (exactly the nodes
-    touched), and previous_render_id. Untouched content is byte-identical.
+    Returns the lean render payload (png_path, svg_path, svg by default;
+    no png_base64 unless include_png=true) plus diff.changed (exactly the
+    nodes touched) and previous_render_id. Untouched content is
+    byte-identical.
     """
     record = RENDERS.get(render_id)
     if record is None:
@@ -386,11 +460,8 @@ def sketch_edit(render_id: str, patch_ops: list[dict]) -> dict:
                                  parents=[render_id])
     except EtchError as e:
         return _err(e)
-    png = to_png(new_record["svg"])
-    out = _public(new_record)
-    out["svg"] = new_record["svg"]
-    out["png_base64"] = base64.b64encode(png).decode("ascii")
-    out["provenance"] = _provenance_for(new_record)
+    out = _full_response(new_record, include_png=include_png,
+                         include_svg=include_svg)
     out["diff"] = diff
     out["previous_render_id"] = render_id
     return out
@@ -399,13 +470,16 @@ def sketch_edit(render_id: str, patch_ops: list[dict]) -> dict:
 @mcp.tool()
 @_metered(lambda kw: len(kw.get("scenes", [])))
 def sketch_sequence(scenes: list[dict], brand_id: str | None = "protograph",
-                    columns: int = 2) -> dict:
+                    columns: int = 2,
+                    include_contact_sheet: bool = False) -> dict:
     """Render multiple scenes as a storyboard.
 
     Each scene renders independently (deterministic, like sketch_compose).
-    Returns storyboard_id, per-scene render_ids + content_hashes, and a
-    contact_sheet_base64 PNG tiling all scenes in a grid (columns wide).
-    Example: scenes=[scene1, scene2] for a 2-frame storyboard.
+    Returns storyboard_id, per-scene render_ids + content_hashes, and
+    contact_sheet_path + contact_sheet_bytes (PNG tiled columns-wide under
+    engine/assets/renders/<storyboard_id>-contact.png). Lean default: NO
+    contact_sheet_base64 — pass include_contact_sheet=true to also inline
+    it. Example: scenes=[scene1, scene2] for a 2-frame storyboard.
     """
     if not scenes:
         return {"error": {"node_id": None, "reason": "scenes is empty",
@@ -431,12 +505,19 @@ def sketch_sequence(scenes: list[dict], brand_id: str | None = "protograph",
         sheet.paste(im, ((i % columns) * cw, (i // columns) * chh))
     buf = io.BytesIO()
     sheet.save(buf, "PNG")
-    return {
+    sheet_bytes = buf.getvalue()
+    written = _write_bytes(
+        os.path.join(RENDERS_DIR, f"{sb_id}-contact.png"), sheet_bytes)
+    out = {
         "storyboard_id": sb_id,
         "renders": [{"render_id": r["render_id"],
                      "content_hash": r["content_hash"]} for r in records],
-        "contact_sheet_base64": base64.b64encode(buf.getvalue()).decode("ascii"),
+        "contact_sheet_path": written["path"],
+        "contact_sheet_bytes": written["bytes"],
     }
+    if include_contact_sheet:
+        out["contact_sheet_base64"] = base64.b64encode(sheet_bytes).decode("ascii")
+    return out
 
 
 @mcp.tool()

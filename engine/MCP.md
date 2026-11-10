@@ -54,15 +54,25 @@ claude mcp add etch -- /home/YOU/workspace/agent-tools-lab/engine/.venv/bin/pyth
 
 ## Tools (14)
 
+**Lean by default:** compose / edit / from_pack write PNG+SVG under
+`engine/assets/renders/<render_id>.{png,svg}` and return `png_path`,
+`png_bytes`, `svg_path`, `svg_bytes` (+ the `svg` string). They do **not**
+inline `png_base64` unless you pass `include_png=true` (for clients without
+a filesystem). Pass `include_svg=false` to omit the svg string (path still
+returned). Sequence writes `…/<storyboard_id>-contact.png` (`contact_sheet_path`);
+opt in to `contact_sheet_base64` with `include_contact_sheet=true`. Diff
+writes `…/diff-<a>-<b>.png` (`diff_path`); opt in with `include_diff_png=true`.
+`sketch_batch` and `sketch_animate` were already lean (ids/hashes / `gif_path`).
+
 | Tool | One-liner |
 |---|---|
-| `sketch_compose` | Scene graph → render (`render_id`, `content_hash`, `svg`, `png_base64`, bboxes, `provenance`) |
-| `sketch_edit` | Patch ops on `node_id`s → new render + `diff.changed` (+ lineage in `provenance.parents`) |
-| `sketch_sequence` | Scenes[] → storyboard + contact-sheet PNG |
-| `sketch_batch` | Template scene with `{{placeholders}}` + row dicts → one render per row |
-| `sketch_from_pack` | Render a named fragment from a component pack with `params` |
+| `sketch_compose` | Scene graph → render (`render_id`, `content_hash`, `png_path`, `svg_path`, `svg`, bboxes, `provenance`) |
+| `sketch_edit` | Patch ops on `node_id`s → lean render + `diff.changed` (+ lineage in `provenance.parents`) |
+| `sketch_sequence` | Scenes[] → storyboard + contact-sheet file (`contact_sheet_path`) |
+| `sketch_batch` | Template scene with `{{placeholders}}` + row dicts → one render per row (ids/hashes only) |
+| `sketch_from_pack` | Render a named fragment from a component pack with `params` (lean payload) |
 | `packs_list` | Component packs on disk → fragments + their params |
-| `sketch_diff` | Two render_ids → diff PNG (red on dimmed base), `% changed`, region boxes |
+| `sketch_diff` | Two render_ids → `diff_path` PNG (red on dimmed base), `% changed`, region boxes |
 | `sketch_animate` | render_ids[] or storyboard_id → animated GIF under `engine/assets/animated/` |
 | `sketch_provenance` | Signed-render manifest for a render_id (HMAC-SHA256 when `ETCH_SIGNING_KEY` set) |
 | `components_list` | Token-cheap catalog (`type_filter`: `all`\|`container`\|`leaf`) |
@@ -129,8 +139,9 @@ sequence = per scene, batch = per row, others = 0.
   }
 }}
 ```
-→ `{"render_id": "r_...", "content_hash": "6bed...", "png_base64": "iVBOR...",
-"brand_validation": {"passed": true, ...}, ...}`
+→ `{"render_id": "r_...", "content_hash": "6bed...", "png_path": ".../r_....png",
+"svg_path": ".../r_....svg", "svg": "<svg...", "brand_validation": {"passed": true, ...}, ...}`
+(no `png_base64` unless `include_png=true`)
 
 **3. Edit the headline (surgical — everything else byte-identical):**
 ```json
@@ -155,5 +166,7 @@ sequence = per scene, batch = per row, others = 0.
 - Renders are **content-addressed**: re-composing an identical scene returns
   the existing `render_id` (cache hit, not a new render).
 - Store is **in-memory** (process lifetime). Restart the server = fresh store.
-- `png_base64` decodes to a standard PNG. `svg` is the editable source of truth.
-- Determinism: no randomness, no timestamps in any tool output.
+- Open `png_path` for pixels; `svg` / `svg_path` is the editable source of truth.
+  Use `include_png=true` only when the client cannot read the filesystem.
+- Determinism: no randomness, no timestamps in any tool output. Writing
+  render files does not change `content_hash`.

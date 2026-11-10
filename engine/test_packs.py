@@ -141,7 +141,10 @@ def test_mcp() -> None:
             assert "error" not in r, r
             assert r["pack"] == "carousel-basics" and r["fragment"] == fname
             assert r["render_id"].startswith("r_")
-            assert base64.b64decode(r["png_base64"])[:8] == b"\x89PNG\r\n\x1a\n"
+            assert "png_base64" not in r
+            assert os.path.isfile(r["png_path"]), r["png_path"]
+            with open(r["png_path"], "rb") as f:
+                assert f.read(8) == b"\x89PNG\r\n\x1a\n"
             assert r["brand_validation"]["passed"] is True
             hashes.add(r["content_hash"])
         assert len(hashes) == 3
