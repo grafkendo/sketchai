@@ -1,0 +1,106 @@
+Etch ASCII decorations — drop these anywhere in docs, READMEs, comments.
+All pure text, monospace-safe. Credit: made for the Etch repo (MIT).
+
+== ARROWS ==
+right        ------>
+             ======>
+             - - - ->
+double       <----->
+left         <------
+up             ^
+               |
+down           |
+               v
+chunky up      /\
+              /  \
+             -----
+               ||
+               ||
+chunky right   |\
+               | \
+               | /
+               |/
+curved            _
+                   \
+                    >
+
+== FROGS ==
+frog (front)
+  (o)(o)
+ (  __  )
+  (____)
+  _|  |_
+
+frog (side)
+   ___
+ _/   \_
+(o)   (o)
+ (  _  )
+  \___/
+
+frog (tiny)
+ @..@
+(----)
+( >  < )
+ ^^  ^^
+
+== FLOWERS ==
+daisy
+ .*.
+(*@*)
+ .*.
+  |
+ \|/
+
+tulip
+ (v)(v)
+  \|/
+   |
+  \|/
+
+rose (on a stem)
+ @}->--
+rose (bud)
+-,--{@
+sunflower
+ \|/
+--(@)--
+ /|\
+   |
+
+== ANIMALS ==
+cat
+ /\_/\
+( o.o )
+ > ^ <
+
+bird
+ \
+(o>
+_//)
+
+bunny
+(\(\
+( -.-)
+o_(")(")
+
+owl
+ /\ /\
+((ovo))
+():::()
+  VVV
+
+dog
+ /^___^\
+(  o o  )
+ (  uu   )
+  \___/
+
+fish
+><(((('>
+
+butterfly
+\/| |\/ 
+ \o_o/  
+ /_ _\  
+   |
