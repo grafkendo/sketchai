@@ -5,25 +5,22 @@ logins, and button-clicks live in his browser — I can't do those for him).
 
 ## 0. Prerequisites (do once)
 
-- [ ] Repo is **public** on GitHub (`grafkendo/sketchai`). Registries can't
-      ingest a private repo. (Settings → General → Danger Zone → Change visibility.)
-- [ ] `main` branch contains: `smithery.yaml`, `server.json`, `Dockerfile`,
+- [x] Repo is **public** on GitHub (`grafkendo/sketchai`). Flipped
+      2026-11-10. Registries can't ingest a private repo.
+- [x] `main` branch contains: `smithery.yaml`, `server.json`, `Dockerfile`,
       `engine/` (all pushed).
 
-## 1. Smithery (smithery.ai) — one-click installs
+## 1. ~~Smithery (smithery.ai)~~ — CLOSED, do not attempt
 
-1. [ ] Go to **https://smithery.ai/new** and sign in with GitHub.
-2. [ ] Paste the repo URL `https://github.com/grafkendo/sketchai` and submit.
-     Smithery reads `smithery.yaml` at the repo root (stdio start command,
-     no config needed) — the listing should configure itself.
-3. [ ] Verify: open the listing, click the install command for Claude Code,
-     run it in a terminal, then ask Claude Code to call `components_list`.
-     Expected: the 14-component catalog.
-4. [ ] ⚠️ If Smithery's intake no longer offers the repo-URL flow (their docs
-     have been shifting toward `.mcpb` bundles / Streamable-HTTP for hosted
-     servers), fall back to: **Settings → Deployments** in the Smithery
-     dashboard, or package an `.mcpb` bundle from this repo. The stdio server
-     itself needs no changes.
+Verified live 2026-11-10: Smithery shut down its connection-management
+services on **October 31, 2026** and is now a curated, Arcade-powered
+directory with **no submission flow at all** — `smithery.ai/new` is a
+shutdown notice, accounts/API keys/CLI no longer work, and there is no
+add-a-server entry point. `smithery.yaml` stays in the repo (harmless,
+and other tools read it), but there is currently no Smithery route for a
+new server. The successor path (Arcade) requires an already-hosted
+Streamable-HTTP server, which Etch is not (stdio-first) — out of scope
+until a hosted phase is authorized.
 
 ## 2. Official MCP registry (registry.modelcontextprotocol.io)
 
