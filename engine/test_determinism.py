@@ -70,6 +70,15 @@ def main() -> None:
     assert r4["content_hash"] == r1["content_hash"], "original scene hash drifted after edit"
     print("PASS  unedited original re-renders to its original hash (edit is non-mutating)")
 
+    # Attribute values are caller-supplied, so a quote or angle bracket in a
+    # param must be escaped into the SVG, never injected as raw markup.
+    evil = make_scene()
+    evil["root"]["fill"] = '#fff" /><text id="injected">pwned</text><rect fill="'
+    revil = compose(evil, brand_id="protograph")
+    assert '<text id="injected">' not in revil["svg"], revil["svg"]
+    assert "&quot;" in revil["svg"] and "&lt;" in revil["svg"], revil["svg"]
+    print("PASS  attribute values are XML-escaped (no markup injection)")
+
     # Brand validation sanity: off-palette color must be caught, naming the node.
     bad = make_scene()
     bad["root"]["children"][0]["children"][0] = C.badge(

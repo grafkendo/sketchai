@@ -430,20 +430,27 @@ class Resolver:
 
 # ------------------------------------------------------- SVG emission
 
+def _esc(s: str) -> str:
+    return xml_escape(s, {'"': "&quot;"})
+
+
 def _attrs(**kw) -> str:
     """Serialize attributes in a FIXED order (insertion order of kwargs as
     written at each call site). WHY: attribute order doesn't change rendering,
-    but it changes bytes — and byte-stability is the product."""
+    but it changes bytes — and byte-stability is the product.
+
+    Values are XML-escaped. WHY: fill, src, d, node_id and the rest are
+    caller-supplied and land in attribute values, so an unescaped quote or
+    angle bracket would break out of the attribute and inject markup into the
+    SVG. Escaping changes the SVG bytes only when a value contains &, <, >
+    or a quote — content_hash covers the scene, not the SVG, so hashes are
+    unaffected."""
     parts = []
     for k, v in kw.items():
         if v is None:
             continue
-        parts.append(f'{k}="{v}"')
+        parts.append(f'{k}="{_esc(str(v))}"')
     return " ".join(parts)
-
-
-def _esc(s: str) -> str:
-    return xml_escape(s, {'"': "&quot;"})
 
 
 class SVGWriter:

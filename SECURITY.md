@@ -27,7 +27,10 @@ Please include:
 ## Scope notes
 
 - The render pipeline executes no untrusted code: scenes are data (JSON), and
-  SVG output is generated, never parsed from untrusted input.
+  SVG output is generated, never parsed from untrusted input. Text and every
+  attribute value in generated SVG are XML-escaped, and brand and pack names
+  are restricted to plain names so they can't address files outside their
+  directories.
 - `assets_upload` stores bytes and never executes them; still, don't feed it
   anything you wouldn't save to disk.
 - Dependencies are pinned in `engine/requirements.txt`. If you spot a pinned

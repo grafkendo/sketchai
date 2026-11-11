@@ -5,7 +5,7 @@ Roadmap: `../ROADMAP.md` (Phase 0 + Phase 1 exit criteria — both met).
 
 ## What was built
 
-`~/workspace/agent-tools-lab/engine/` — pure Python vector sketch engine:
+`engine/` — pure Python vector sketch engine:
 
 | File | Role |
 |---|---|
@@ -22,7 +22,7 @@ Roadmap: `../ROADMAP.md` (Phase 0 + Phase 1 exit criteria — both met).
 ## How to run
 
 ```bash
-cd ~/workspace/agent-tools-lab/engine
+cd engine   # from the repo root
 .venv/bin/python demo.py                  # 6-slide carousel + surgical edit -> demo_out/
 .venv/bin/python test_determinism.py      # determinism assertions
 .venv/bin/python api.py                   # FastAPI on :8000
@@ -215,7 +215,7 @@ workflows:
    unchanged.
 
 Verified 2026-10-13 (this machine):
-- Fresh venv in /tmp → `pip install /home/hatch/workspace/agent-tools-lab` →
+- Fresh venv → `pip install <path-to-sketchai>` →
   `etch-mcp` starts, answers `tools/list` (8 tools), and `sketch_compose`
   renders a real PNG using the *bundled* Bricolage TTF with `fc-list` hidden
   from PATH (proves no fontconfig dependency).

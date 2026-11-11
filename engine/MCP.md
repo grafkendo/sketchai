@@ -6,7 +6,7 @@ get deterministic renders back. Same scene + brand = same pixels, every time.
 ## Install
 
 ```bash
-cd ~/workspace/agent-tools-lab/engine
+cd engine   # from the repo root
 .venv/bin/python -c "import mcp"   # already installed in the venv
 ```
 
@@ -28,14 +28,14 @@ Verify: `engine\.venv\Scripts\python -c "import cairosvg; print('cairo ok')"`
 The server runs over **stdio** (newline-delimited JSON-RPC). Launch command:
 
 ```
-~/workspace/agent-tools-lab/engine/.venv/bin/python ~/workspace/agent-tools-lab/engine/mcp_server.py
+<path-to-sketchai>/engine/.venv/bin/python <path-to-sketchai>/engine/mcp_server.py
 ```
 
 ## Client config
 
 **Claude Code:**
 ```bash
-claude mcp add etch -- /home/YOU/workspace/agent-tools-lab/engine/.venv/bin/python /home/YOU/workspace/agent-tools-lab/engine/mcp_server.py
+claude mcp add etch -- <path-to-sketchai>/engine/.venv/bin/python <path-to-sketchai>/engine/mcp_server.py
 ```
 
 **Cursor** (`~/.cursor/mcp.json`):
@@ -43,8 +43,8 @@ claude mcp add etch -- /home/YOU/workspace/agent-tools-lab/engine/.venv/bin/pyth
 {
   "mcpServers": {
     "etch": {
-      "command": "/home/YOU/workspace/agent-tools-lab/engine/.venv/bin/python",
-      "args": ["/home/YOU/workspace/agent-tools-lab/engine/mcp_server.py"]
+      "command": "<path-to-sketchai>/engine/.venv/bin/python",
+      "args": ["<path-to-sketchai>/engine/mcp_server.py"]
     }
   }
 }

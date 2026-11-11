@@ -167,6 +167,20 @@ def test_severity_semantics() -> None:
     print("PASS  strict=false renders despite error-severity violations")
 
 
+def test_brand_id_is_a_name() -> None:
+    # brand_id comes from tool and API callers and is joined onto the brands
+    # directory, so anything but a plain name must be rejected before it can
+    # address a file outside that directory.
+    for bad in ("../packs/carousel-basics", "protograph/../../x", "a b", ""):
+        try:
+            load_brand(bad)
+            raise AssertionError(f"should have rejected {bad!r}")
+        except EtchError as e:
+            assert "invalid brand_id" in e.reason, e.reason
+    assert load_brand("protograph")["id"] == "protograph"
+    print("PASS  brand_id must be a plain name (no path traversal)")
+
+
 def test_demo_scenes_unaffected() -> None:
     # The 6 real demo slides must render strict with zero NEW violations
     # blocking them (the rules were added as warnings after verifying this).
@@ -186,5 +200,6 @@ if __name__ == "__main__":
     test_contrast_rule()
     test_max_colors_rule()
     test_severity_semantics()
+    test_brand_id_is_a_name()
     test_demo_scenes_unaffected()
     print("\nAll brand-rule tests passed.")

@@ -31,12 +31,23 @@ BRANDS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brands")
 
 _HEX = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 
+# Brand files live in a fixed directory and are addressed by name only.
+# WHY a strict name pattern: brand_id arrives from tool and API callers, and
+# os.path.join(brands_dir, f"{brand_id}.json") would otherwise follow "../"
+# out of the brands directory.
+_SAFE_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
+
 
 class BrandError(EtchError):
     pass
 
 
 def load_brand(brand_id: str, brands_dir: str = BRANDS_DIR) -> dict:
+    if not isinstance(brand_id, str) or not _SAFE_NAME.match(brand_id):
+        raise BrandError(
+            None, f"invalid brand_id '{brand_id}'",
+            "brand_id must contain only letters, digits, '_' or '-'.",
+        )
     path = os.path.join(brands_dir, f"{brand_id}.json")
     if not os.path.isfile(path):
         available = sorted(
