@@ -1,7 +1,6 @@
-# NOTE: this workflow has never run on GitHub yet — its first real execution
-# will be the first push to a public repo. The Windows GTK3-runtime step is
-# best-effort (silent install of the tschoonj runtime so cairosvg can find
-# libcairo-2.dll); verify it goes green on the first run and adjust as needed.
+# CI for Etch. First ran 2026-11-10 (run #1): Ubuntu leg green; the Windows
+# GTK3-runtime step hung on Start-Process -Wait (installer child processes)
+# and was rewritten to launch-and-poll for libcairo-2.dll instead.
 
 name: CI
 
@@ -40,7 +39,17 @@ jobs:
             | Where-Object { $_.name -like '*win64.exe' } | Select-Object -First 1
           Write-Host "Installing $($asset.name)"
           Invoke-WebRequest $asset.browser_download_url -OutFile "$env:RUNNER_TEMP\gtk3.exe"
-          Start-Process "$env:RUNNER_TEMP\gtk3.exe" -ArgumentList '/S' -Wait
+          # Do NOT -Wait on the installer: it spawns child processes and
+          # Start-Process -Wait hangs on them on GitHub runners (observed
+          # 2026-11-10, first CI run stalled >15 min at this step). Launch
+          # it, then poll for the file render.py actually needs.
+          Start-Process "$env:RUNNER_TEMP\gtk3.exe" -ArgumentList '/S'
+          $dll = "C:\Program Files\GTK3-Runtime Win64\bin\libcairo-2.dll"
+          for ($i = 0; $i -lt 60; $i++) {
+            if (Test-Path $dll) { Write-Host "libcairo-2.dll present"; break }
+            Start-Sleep -Seconds 5
+          }
+          if (-not (Test-Path $dll)) { throw "GTK3 runtime install did not produce libcairo-2.dll within 5 minutes" }
 
       - name: Install dependencies
         run: pip install -r engine/requirements.txt
