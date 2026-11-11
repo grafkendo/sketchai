@@ -1,0 +1,54 @@
+# NOTE: this workflow has never run on GitHub yet — its first real execution
+# will be the first push to a public repo. The Windows GTK3-runtime step is
+# best-effort (silent install of the tschoonj runtime so cairosvg can find
+# libcairo-2.dll); verify it goes green on the first run and adjust as needed.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install GTK3 runtime (Windows, for cairosvg)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # cairosvg needs libcairo-2.dll, which pip cannot ship on Windows.
+          # render.py auto-registers the GTK bin dir at import, so we only
+          # need the runtime present on disk.
+          $asset = (Invoke-RestMethod `
+            https://api.github.com/repos/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases/latest).assets `
+            | Where-Object { $_.name -like '*win64.exe' } | Select-Object -First 1
+          Write-Host "Installing $($asset.name)"
+          Invoke-WebRequest $asset.browser_download_url -OutFile "$env:RUNNER_TEMP\gtk3.exe"
+          Start-Process "$env:RUNNER_TEMP\gtk3.exe" -ArgumentList '/S' -Wait
+
+      - name: Install dependencies
+        run: pip install -r engine/requirements.txt
+
+      - name: Determinism tests
+        working-directory: engine
+        run: python test_determinism.py
+
+      - name: MCP tool tests
+        working-directory: engine
+        run: python test_mcp.py
