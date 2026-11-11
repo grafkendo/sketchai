@@ -114,10 +114,11 @@ byte-identical):
   publishing (see `PUBLISHING.md`). The two bundled fonts (Bricolage
   Grotesque, Hanken Grotesk) are separately licensed under the SIL Open Font
   License — see `engine/fonts/OFL.txt`.
-- **Known v0.2.0 trait:** render responses inline the PNG as base64, which
-  costs the calling model extra context tokens (~10–20k per compose). A
-  lean, file-path-based response mode is designed and on the roadmap —
-  until then, clients on a token budget should expect that cost.
+- **Lean responses:** render tools write the PNG and SVG to disk and
+  return paths plus `render_id` / `content_hash` by default, so a compose
+  costs the calling model ~2k context tokens instead of ~10–20k.
+  Base64-inlining is still available as an opt-in (`include_png=true`)
+  for clients without filesystem access.
 - **Next:** registry distribution (Smithery, the official MCP registry,
   directories). Hosted SaaS + billing is a later phase, not yet built.
 
