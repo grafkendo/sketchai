@@ -45,13 +45,6 @@ frog (tiny)
  ^^  ^^
 
 == FLOWERS ==
-daisy
- .*.
-(*@*)
- .*.
-  |
- \|/
-
 tulip
  (v)(v)
   \|/
