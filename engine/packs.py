@@ -28,11 +28,18 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 from batch import substitute_placeholders
 from components import EtchError
 
 PACKS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "packs")
+
+# Pack files live in a fixed directory and are addressed by name only.
+# WHY a strict name pattern: pack names arrive from tool callers, and
+# os.path.join(PACKS_DIR, f"{pack_name}.json") would otherwise follow "../"
+# out of the packs directory.
+_SAFE_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 class PackError(EtchError):
@@ -46,6 +53,11 @@ def _available_packs() -> list[str]:
 
 
 def load_pack(pack_name: str) -> dict:
+    if not isinstance(pack_name, str) or not _SAFE_NAME.match(pack_name):
+        raise PackError(
+            None, f"invalid pack name '{pack_name}'",
+            "Pack names must contain only letters, digits, '_' or '-'.",
+        )
     path = os.path.join(PACKS_DIR, f"{pack_name}.json")
     if not os.path.isfile(path):
         raise PackError(

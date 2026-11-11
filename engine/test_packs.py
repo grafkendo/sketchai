@@ -75,6 +75,16 @@ def test_module() -> None:
     assert frags["hook"]["params"] == ["headline", "subline"]
     print("PASS  packs_list shows carousel-basics with 3 fragments + params")
 
+    # Pack names come from tool callers and are joined onto the packs
+    # directory, so anything but a plain name must be rejected.
+    for bad in ("../brands/protograph", "carousel-basics/../../x", "a b"):
+        try:
+            load_pack(bad)
+            raise AssertionError(f"should have rejected {bad!r}")
+        except EtchError as e:
+            assert "invalid pack name" in e.reason, e.reason
+    print("PASS  pack name must be a plain name (no path traversal)")
+
     # Each fragment substitutes and composes cleanly.
     for fname, params in _PARAMS.items():
         scene, pack = get_fragment_scene("carousel-basics", fname, params)

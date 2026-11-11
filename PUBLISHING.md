@@ -33,7 +33,7 @@ Uses `server.json` at the repo root + the `mcp-publisher` CLI.
      `modelcontextprotocol/registry` on GitHub).
 2. [ ] **Build + push the Docker image** (the registry entry points at it):
      ```bash
-     cd ~/workspace/agent-tools-lab   # or wherever you cloned sketchai
+     cd <path-to-sketchai>   # the sketchai repo root
      docker build -t ghcr.io/grafkendo/sketchai-mcp:0.2.0 -t ghcr.io/grafkendo/sketchai-mcp:latest .
      docker push ghcr.io/grafkendo/sketchai-mcp:0.2.0
      docker push ghcr.io/grafkendo/sketchai-mcp:latest

@@ -111,7 +111,9 @@ byte-identical):
 - **Open source (Oct 13, 2026):** MIT `LICENSE`, `CONTRIBUTING.md`,
   `SECURITY.md`, `pyproject.toml` (`pip install` gives you the `etch-mcp`
   command), `smithery.yaml` + `Dockerfile` + `server.json` for registry
-  publishing (see `PUBLISHING.md`).
+  publishing (see `PUBLISHING.md`). The two bundled fonts (Bricolage
+  Grotesque, Hanken Grotesk) are separately licensed under the SIL Open Font
+  License — see `engine/fonts/OFL.txt`.
 - **Known v0.2.0 trait:** render responses inline the PNG as base64, which
   costs the calling model extra context tokens (~10–20k per compose). A
   lean, file-path-based response mode is designed and on the roadmap —
