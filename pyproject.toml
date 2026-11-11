@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "etch-sketch"
-version = "0.2.0"
+version = "0.3.0"
 description = "Etch-A-Sketch for AI: deterministic vector composition for agents"
 readme = "README.md"
 license = { text = "MIT" }

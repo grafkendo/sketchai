@@ -16,6 +16,7 @@
 │                                      _|  |_                       │
 │    d e t e r m i n i s t i c   v e c t o r   s k e t c h i n g    │
 │                     f o r   a i   a g e n t s                     │
+│                              v0.3.0                               │
 │                                                                   │
 │ ( ◉ )                                                       ( ◉ ) │
 ╰───────────────────────────────────────────────────────────────────╯
@@ -117,7 +118,7 @@ byte-identical):
 
 ## Status
 
-**v0.2.0 — working and tested.** All 10 engine test suites pass.
+**v0.3.0 — working and tested.** All 10 engine test suites pass.
 
 - **Engine (Phase 0+1, Oct 12, 2026):** deterministic render core in
   `engine/` — 14 typed components, constraint/flow layout, brand-token

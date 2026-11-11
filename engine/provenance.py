@@ -32,10 +32,9 @@ import json
 import os
 
 # WHY a literal instead of importing engine.__version__: provenance is
-# imported by mcp_server before the package init runs in some launch paths,
-# and the two already disagree (pyproject 0.2.0 vs __init__ 0.1.0 — unify
-# at the 1.0 cut). One literal, bumped with releases.
-ENGINE_VERSION = "0.2.0"
+# imported by mcp_server before the package init runs in some launch paths.
+# Keep this in step with pyproject.toml and engine/__init__.py on every release.
+ENGINE_VERSION = "0.3.0"
 
 
 def render_id_for(content_hash: str, brand_id: str | None) -> str:

@@ -31,12 +31,12 @@ Uses `server.json` at the repo root + the `mcp-publisher` CLI.
 2. [ ] **Build + push the Docker image** (the registry entry points at it):
      ```bash
      cd <path-to-sketchai>   # the sketchai repo root
-     docker build -t ghcr.io/grafkendo/sketchai-mcp:0.2.0 -t ghcr.io/grafkendo/sketchai-mcp:latest .
-     docker push ghcr.io/grafkendo/sketchai-mcp:0.2.0
+     docker build -t ghcr.io/grafkendo/sketchai-mcp:0.3.0 -t ghcr.io/grafkendo/sketchai-mcp:latest .
+     docker push ghcr.io/grafkendo/sketchai-mcp:0.3.0
      docker push ghcr.io/grafkendo/sketchai-mcp:latest
      ```
      (Both tags: `server.json`'s package identifier points at `:latest`;
-     its version fields say 0.2.0. Push both or the registry entry 404s.)
+     its version fields say 0.3.0. Push both or the registry entry 404s.)
      (Needs `docker login ghcr.io` with a classic PAT that has
      `write:packages` scope. Make the package **public** after pushing:
      github.com → your profile → Packages → sketchai-mcp → Package settings.)
@@ -70,7 +70,7 @@ On any machine with an MCP client (no repo clone):
 ## What I deliberately did NOT do
 
 - No accounts created, nothing submitted, no visibility changed — all yours.
-- `server.json` references a Docker image tag (`0.2.0`) that doesn't exist
+- `server.json` references a Docker image tag (`0.3.0`) that doesn't exist
   until you run step 2.2. Don't publish the registry entry before the image.
 - The MCP server is **stdio-only**. Smithery *hosted* (cloud) mode and some
   directories prefer Streamable-HTTP — that's Phase 3 work (FastAPI already

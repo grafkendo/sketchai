@@ -46,7 +46,7 @@ from render import canonical, compose, edit
 
 API_KEY = os.environ.get("ETCH_API_KEY", "")
 
-app = FastAPI(title="Etch — vector sketch service (MVP)", version="0.1.0")
+app = FastAPI(title="Etch — vector sketch service (MVP)", version="0.3.0")
 
 # In-memory render store: render_id -> record. (Phase 3 replaces this with
 # a real DB; for the MVP the process lifetime is the store lifetime.)
