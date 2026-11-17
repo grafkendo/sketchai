@@ -25,6 +25,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/grafkendo/sketchai/actions/workflows/ci.yml/badge.svg)](https://github.com/grafkendo/sketchai/actions/workflows/ci.yml)
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/grafkendo)
+
+Etch is free and open source. If it saves you time, you can
+[buy me a coffee on Ko-fi](https://ko-fi.com/grafkendo) — optional, always.
 
 A service that lets **AI agents draw** — composing storyboards, slides, and
 social graphics from vector components instead of full prompt-to-image renders.
@@ -134,9 +138,7 @@ byte-identical):
 - **Open source (Oct 13, 2026):** MIT `LICENSE`, `CONTRIBUTING.md`,
   `SECURITY.md`, `pyproject.toml` (`pip install` gives you the `etch-mcp`
   command), `smithery.yaml` + `Dockerfile` + `server.json` for registry
-  publishing (see `PUBLISHING.md`). The two bundled fonts (Bricolage
-  Grotesque, Hanken Grotesk) are separately licensed under the SIL Open Font
-  License — see `engine/fonts/OFL.txt`.
+  publishing (see `PUBLISHING.md`).
 - **Lean responses:** render tools write the PNG and SVG to disk and
   return paths plus `render_id` / `content_hash` by default, so a compose
   costs the calling model ~2k context tokens instead of ~10–20k.
