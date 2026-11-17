@@ -100,18 +100,14 @@ def main() -> None:
         assert names == expected, f"tool mismatch: {names}"
         print(f"PASS  tools/list -> {len(names)} tools")
 
-        # Known content_hash for the fixed "Hello" Protograph scene — must
-        # stay stable across lean-mode (determinism contract).
-        HELLO_HASH = (
-            "6bed9482611b8c3149fd56c0519c3f25f95b555c3247e556513786cdbafd8f7f"
-        )
-
         # 1. compose a 2-node scene — lean default (paths, no png_base64)
+        # WHY no pinned content_hash: hash covers the layout-resolved scene,
+        # and text metrics differ across OS/Cairo builds (Windows CI != Linux).
+        # Same-process idempotency below is the cross-run contract; see
+        # test_determinism.py for within-platform stability.
         r1 = _call(proc, "sketch_compose", {"scene": _scene("Hello")})
         assert "error" not in r1, r1
         assert r1["render_id"].startswith("r_") and len(r1["content_hash"]) == 64
-        assert r1["content_hash"] == HELLO_HASH, (
-            f"content_hash drifted: {r1['content_hash']}")
         assert "png_base64" not in r1, "lean default must omit png_base64"
         assert os.path.isfile(r1["png_path"]), r1["png_path"]
         with open(r1["png_path"], "rb") as f:
